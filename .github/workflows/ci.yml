@@ -264,19 +264,10 @@ jobs:
           mkdir -p "$E"
           docker load -i "$RUNNER_TEMP/images.tar"
           kind load docker-image --name capstone "$BACKEND_IMAGE:$SHA" "$FRONTEND_IMAGE:$SHA"
-          echo "127.0.0.1 incidentdesk.local" | sudo tee -a /etc/hosts
+          echo "127.0.0.1 incidentdesk.local prometheus.local grafana.local" | sudo tee -a /etc/hosts
       - name: Platform — NGINX Ingress controller, metrics-server, Prometheus, Grafana
         run: |
           kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.12.1/deploy/static/provider/kind/deploy.yaml
-          helm repo add metrics-server https://kubernetes-sigs.github.io/metrics-server/
-          helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-          helm repo add grafana-community https://grafana-community.github.io/helm-charts
-          helm repo update
-          helm upgrade --install metrics-server metrics-server/metrics-server -n kube-system \
-            --set 'args={--kubelet-insecure-tls}'
-          helm upgrade --install prometheus prometheus-community/prometheus -n monitoring --create-namespace \
-            -f monitoring/prometheus-values.yaml
-          helm upgrade --install grafana grafana-community/grafana -n monitoring -f monitoring/grafana-values.yaml
           kubectl -n ingress-nginx wait --for=condition=Ready pod -l app.kubernetes.io/component=controller --timeout=180s
           kubectl -n ingress-nginx wait --for=condition=Complete job --all --timeout=120s
           # the admission webhook answers a few seconds after the controller is Ready: wait for it
@@ -293,6 +284,18 @@ jobs:
           YAML
             sleep 4
           done
+          helm repo add metrics-server https://kubernetes-sigs.github.io/metrics-server/
+          helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+          helm repo add grafana-community https://grafana-community.github.io/helm-charts
+          helm repo update
+          helm upgrade --install metrics-server metrics-server/metrics-server -n kube-system \
+            --set 'args={--kubelet-insecure-tls}'
+          helm upgrade --install prometheus prometheus-community/prometheus -n monitoring --create-namespace \
+            -f monitoring/prometheus-values.yaml \
+            --set server.ingress.enabled=true --set server.ingress.ingressClassName=nginx \
+            --set 'server.ingress.hosts={prometheus.local}'
+          helm upgrade --install grafana grafana-community/grafana -n monitoring -f monitoring/grafana-values.yaml \
+            --set ingress.enabled=true --set ingress.ingressClassName=nginx --set 'ingress.hosts={grafana.local}'
       - name: kubectl apply -f k8s/namespace.yaml ; helm upgrade --install
         run: |
           set -o pipefail
@@ -351,8 +354,6 @@ jobs:
         run: |
           kubectl -n monitoring rollout status deploy/prometheus-server --timeout=180s
           kubectl -n monitoring rollout status deploy/grafana --timeout=180s
-          kubectl -n monitoring port-forward svc/prometheus-server 9090:80 >/dev/null 2>&1 &
-          kubectl -n monitoring port-forward svc/grafana 3000:80 >/dev/null 2>&1 &
           kubectl -n "$NS" port-forward svc/incidentdesk-backend 8000:8000 >/dev/null 2>&1 &
           sleep 5
           {
@@ -360,28 +361,23 @@ jobs:
             curl -s localhost:8000/metrics | grep -E '^(http_requests_total|incidents_created_total)' | head -15
           } 2>&1 | tee "$E/backend-metrics.txt"
           for _ in $(seq 1 30); do
-            n=$(curl -s 'localhost:9090/api/v1/query' --data-urlencode 'query=sum(up{namespace="incidentdesk",app_kubernetes_io_component="backend"})' \
-                | python3 -c 'import json,sys; r=json.load(sys.stdin)["data"]["result"]; print(int(float(r[0]["value"][1])) if r else 0)')
-            [ "$n" -ge 2 ] && break; sleep 10
+            python scripts/ci/promql.py 'sum(up{namespace="incidentdesk",app_kubernetes_io_component="backend"}) >= 2' pod | grep -q "value" && break
+            sleep 10
           done
           {
-            echo "\$ PromQL: up{namespace=\"incidentdesk\"}"
-            curl -s 'localhost:9090/api/v1/query' --data-urlencode 'query=up{namespace="incidentdesk"}' \
-              | python3 -c 'import json,sys
-          for r in json.load(sys.stdin)["data"]["result"]:
-              m=r["metric"]; print(f"{m.get(\"pod\",\"?\"):55} {m.get(\"app_kubernetes_io_component\",\"\"):10} up={r[\"value\"][1]}")'
-            echo; echo "\$ PromQL: sum by (handler, status) (rate(http_requests_total{namespace=\"incidentdesk\"}[2m]))"
-            curl -s 'localhost:9090/api/v1/query' --data-urlencode 'query=sum by (handler, status) (rate(http_requests_total{namespace="incidentdesk"}[2m]))' \
-              | python3 -c 'import json,sys
-          for r in json.load(sys.stdin)["data"]["result"]:
-              m=r["metric"]; print(f"{m.get(\"handler\",\"\"):35} {m.get(\"status\",\"\"):5} {float(r[\"value\"][1]):.2f} req/s")'
-            echo; echo "\$ curl -s http://grafana:3000/api/health"; curl -s localhost:3000/api/health; echo
-            echo "\$ curl -s http://grafana:3000/api/search?query=IncidentDesk"; curl -s 'localhost:3000/api/search?query=IncidentDesk'; echo
+            echo "\$ PromQL: up{namespace=\"incidentdesk\"}   (1 = target UP)"
+            python scripts/ci/promql.py 'up{namespace="incidentdesk"}' pod,app_kubernetes_io_component
+            echo; echo "\$ PromQL: sum by (handler, status) (rate(http_requests_total{namespace=\"incidentdesk\"}[2m]))   (req/s)"
+            python scripts/ci/promql.py 'sum by (handler, status) (rate(http_requests_total{namespace="incidentdesk"}[2m]))' handler,status
+            echo; echo "\$ PromQL: kube_horizontalpodautoscaler_status_current_replicas"
+            python scripts/ci/promql.py 'kube_horizontalpodautoscaler_status_current_replicas{namespace="incidentdesk"}' horizontalpodautoscaler
+            echo; echo "\$ curl -s http://grafana.local/api/health"; curl -s grafana.local/api/health; echo
+            echo "\$ curl -s 'http://grafana.local/api/search?query=IncidentDesk'"; curl -s 'grafana.local/api/search?query=IncidentDesk'; echo
           } 2>&1 | tee "$E/prometheus-grafana.txt"
       - name: Screenshots (headless Chromium) — app via Ingress, Prometheus targets, Grafana
         run: |
           # keep a little traffic flowing so the rate() panels are not flat at the moment of capture
-          scripts/load-test.sh http://incidentdesk.local 90 >/dev/null 2>&1 &
+          CONCURRENCY=2 scripts/load-test.sh http://incidentdesk.local 120 >/dev/null 2>&1 &
           sleep 45
           pip install --quiet playwright==1.55.0
           python -m playwright install --with-deps chromium >/dev/null
@@ -410,9 +406,14 @@ jobs:
             echo; echo "self-heal test: delete the backend Service by hand, Argo CD recreates it"
             echo "\$ kubectl -n incidentdesk-gitops delete svc incidentdesk-backend"
             kubectl -n incidentdesk-gitops delete svc incidentdesk-backend
-            sleep 20
+            for _ in $(seq 1 18); do kubectl -n incidentdesk-gitops get svc incidentdesk-backend >/dev/null 2>&1 && break; sleep 5; done
             echo "\$ kubectl -n incidentdesk-gitops get svc incidentdesk-backend"
             kubectl -n incidentdesk-gitops get svc incidentdesk-backend
+            echo; echo "\$ kubectl -n argocd get application incidentdesk-gitops  (after self-heal)"
+            kubectl -n argocd get application incidentdesk-gitops
+            echo "resources Argo CD reports as OutOfSync:"
+            kubectl -n argocd get application incidentdesk-gitops \
+              -o jsonpath='{range .status.resources[?(@.status=="OutOfSync")]}  {.kind}/{.name}{"\n"}{end}'
           } 2>&1 | tee "$E/argocd.txt"
       - name: Troubleshooting lab — broken image and broken Service
         if: always()
