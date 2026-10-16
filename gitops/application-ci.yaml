@@ -1,0 +1,31 @@
+# Argo CD Application used by the CI "deploy" job: the same chart, straight from this repo's
+# main branch, synced into its own namespace. IMAGE_TAG is substituted by the workflow.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: incidentdesk-gitops
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/BinaryBhakti/incidentdesk-devops-capstone.git
+    targetRevision: main
+    path: helm/incidentdesk
+    helm:
+      releaseName: incidentdesk
+      valueFiles: [values-ci.yaml]
+      parameters:
+        - { name: backend.image.tag, value: IMAGE_TAG }
+        - { name: frontend.image.tag, value: IMAGE_TAG }
+        - { name: postgres.password, value: argocd-ci-only }
+        - { name: ingress.enabled, value: "false" }
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: incidentdesk-gitops
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [CreateNamespace=true, ServerSideApply=true]
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers: [/spec/replicas]
