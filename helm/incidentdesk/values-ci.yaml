@@ -1,0 +1,22 @@
+# kind cluster inside GitHub Actions: rubric shape (2 replicas each, Ingress on), images loaded
+# straight into the node by `kind load`, so nothing is pulled from GHCR.
+backend:
+  replicas: 2
+  image: { pullPolicy: Never }
+  probes:
+    startup: { path: /health, periodSeconds: 3, failureThreshold: 60 }
+    readiness: { path: /ready, periodSeconds: 5, timeoutSeconds: 5, failureThreshold: 3 }
+    liveness: { path: /health, periodSeconds: 10, timeoutSeconds: 5, failureThreshold: 6 }
+frontend:
+  replicas: 2
+  image: { pullPolicy: Never }
+config:
+  APP_ENV: ci
+  LOG_LEVEL: info
+hpa:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+ingress:
+  enabled: true
+  host: incidentdesk.local
