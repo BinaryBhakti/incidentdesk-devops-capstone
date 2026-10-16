@@ -1,0 +1,9 @@
+load: 8 workers x 150s against http://incidentdesk.local
+worker 2: 1262 iterations
+worker 5: 1278 iterations
+worker 7: 1268 iterations
+worker 4: 1276 iterations
+worker 6: 1265 iterations
+worker 8: 1247 iterations
+worker 1: 1253 iterations
+worker 3: 1282 iterations

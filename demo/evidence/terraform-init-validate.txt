@@ -1,0 +1,28 @@
+$ terraform version
+Terraform v1.16.6
+on linux_amd64
+
+$ terraform fmt -check -recursive
+formatted
+
+$ terraform init
+Initializing the backend...
+
+Initializing provider plugins...
+- Finding hashicorp/aws versions matching "~> 6.0"...
+- Finding hashicorp/random versions matching "~> 3.6"...
+- Installing hashicorp/aws v6.69.1...
+- Installed hashicorp/aws v6.69.1 (signed by HashiCorp)
+- Installing hashicorp/random v3.9.1...
+- Installed hashicorp/random v3.9.1 (signed by HashiCorp)
+
+Terraform has created a lock file .terraform.lock.hcl to record the provider
+selections it made above. Include this file in your version control repository
+so that Terraform can guarantee to make the same selections by default when
+you run "terraform init" in the future.
+
+Terraform has been successfully initialized!
+
+$ terraform validate
+Success! The configuration is valid.
+

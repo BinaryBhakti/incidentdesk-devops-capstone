@@ -1,0 +1,20 @@
+$ kubectl -n argocd get applications
+NAME                  SYNC STATUS   HEALTH STATUS
+incidentdesk-gitops   Unknown       Healthy
+
+$ kubectl -n incidentdesk-gitops get pods
+NAME                                    READY   STATUS    RESTARTS   AGE
+incidentdesk-backend-6cf9975f66-xcvbs   1/1     Running   0          9m
+incidentdesk-backend-6cf9975f66-z64z7   1/1     Running   0          9m
+incidentdesk-frontend-9bc974fc7-mrrsr   1/1     Running   0          9m
+incidentdesk-frontend-9bc974fc7-ss47c   1/1     Running   0          9m
+incidentdesk-postgres-0                 1/1     Running   0          9m
+
+$ kubectl -n argocd get application incidentdesk-gitops -o jsonpath=... (source + revision)
+repo=https://github.com/BinaryBhakti/incidentdesk-devops-capstone.git path=helm/incidentdesk revision=
+
+self-heal test: delete the backend Service by hand, Argo CD recreates it
+$ kubectl -n incidentdesk-gitops delete svc incidentdesk-backend
+service "incidentdesk-backend" deleted from incidentdesk-gitops namespace
+$ kubectl -n incidentdesk-gitops get svc incidentdesk-backend
+Error from server (NotFound): services "incidentdesk-backend" not found

@@ -1,0 +1,49 @@
+########## 1. broken image ##########
+$ kubectl apply -f troubleshooting/broken-image.yaml
+Warning: would violate PodSecurity "restricted:latest": allowPrivilegeEscalation != false (container "web" must set securityContext.allowPrivilegeEscalation=false), unrestricted capabilities (container "web" must set securityContext.capabilities.drop=["ALL"]), runAsNonRoot != true (pod or container "web" must set securityContext.runAsNonRoot=true), seccompProfile (pod or container "web" must set securityContext.seccompProfile.type to "RuntimeDefault" or "Localhost")
+deployment.apps/broken-image created
+$ kubectl -n incidentdesk get pods -l app=broken-image
+NAME                            READY   STATUS         RESTARTS   AGE
+broken-image-589ffcdbf6-2xx2k   0/1     ErrImagePull   0          40s
+$ kubectl -n incidentdesk describe pod -l app=broken-image | tail -8
+  Type     Reason     Age                From               Message
+  ----     ------     ----               ----               -------
+  Normal   Scheduled  40s                default-scheduler  Successfully assigned incidentdesk/broken-image-589ffcdbf6-2xx2k to capstone-worker
+  Normal   Pulling    28s (x2 over 40s)  kubelet            spec.containers{web}: Pulling image "ghcr.io/binarybhakti/incidentdesk-capstone-frontend:this-tag-does-not-exist"
+  Warning  Failed     27s (x2 over 39s)  kubelet            spec.containers{web}: Failed to pull image "ghcr.io/binarybhakti/incidentdesk-capstone-frontend:this-tag-does-not-exist": rpc error: code = NotFound desc = failed to pull and unpack image "ghcr.io/binarybhakti/incidentdesk-capstone-frontend:this-tag-does-not-exist": failed to resolve reference "ghcr.io/binarybhakti/incidentdesk-capstone-frontend:this-tag-does-not-exist": ghcr.io/binarybhakti/incidentdesk-capstone-frontend:this-tag-does-not-exist: not found
+  Warning  Failed     27s (x2 over 39s)  kubelet            spec.containers{web}: Error: ErrImagePull
+  Normal   BackOff    15s (x2 over 39s)  kubelet            spec.containers{web}: Back-off pulling image "ghcr.io/binarybhakti/incidentdesk-capstone-frontend:this-tag-does-not-exist"
+  Warning  Failed     15s (x2 over 39s)  kubelet            spec.containers{web}: Error: ImagePullBackOff
+$ kubectl -n incidentdesk get events --sort-by=.lastTimestamp | grep broken-image | tail -4
+27s         Warning   Failed                         pod/broken-image-589ffcdbf6-2xx2k                    Error: ErrImagePull
+27s         Warning   Failed                         pod/broken-image-589ffcdbf6-2xx2k                    Failed to pull image "ghcr.io/binarybhakti/incidentdesk-capstone-frontend:this-tag-does-not-exist": rpc error: code = NotFound desc = failed to pull and unpack image "ghcr.io/binarybhakti/incidentdesk-capstone-frontend:this-tag-does-not-exist": failed to resolve reference "ghcr.io/binarybhakti/incidentdesk-capstone-frontend:this-tag-does-not-exist": ghcr.io/binarybhakti/incidentdesk-capstone-frontend:this-tag-does-not-exist: not found
+15s         Warning   Failed                         pod/broken-image-589ffcdbf6-2xx2k                    Error: ImagePullBackOff
+15s         Normal    BackOff                        pod/broken-image-589ffcdbf6-2xx2k                    Back-off pulling image "ghcr.io/binarybhakti/incidentdesk-capstone-frontend:this-tag-does-not-exist"
+FIX: $ kubectl -n incidentdesk set image deploy/broken-image web=ghcr.io/binarybhakti/incidentdesk-capstone-frontend:076539e7e734b0f8597a5449bf384b6a812b8bb3
+Warning: would violate PodSecurity "restricted:latest": allowPrivilegeEscalation != false (container "web" must set securityContext.allowPrivilegeEscalation=false), unrestricted capabilities (container "web" must set securityContext.capabilities.drop=["ALL"]), runAsNonRoot != true (pod or container "web" must set securityContext.runAsNonRoot=true), seccompProfile (pod or container "web" must set securityContext.seccompProfile.type to "RuntimeDefault" or "Localhost")
+deployment.apps/broken-image image updated
+Warning: would violate PodSecurity "restricted:latest": allowPrivilegeEscalation != false (container "web" must set securityContext.allowPrivilegeEscalation=false), unrestricted capabilities (container "web" must set securityContext.capabilities.drop=["ALL"]), runAsNonRoot != true (pod or container "web" must set securityContext.runAsNonRoot=true), seccompProfile (pod or container "web" must set securityContext.seccompProfile.type to "RuntimeDefault" or "Localhost")
+deployment.apps/broken-image patched
+$ kubectl -n incidentdesk get pods -l app=broken-image
+NAME                            READY   STATUS    RESTARTS   AGE
+broken-image-694f67c9b5-f4cr2   1/1     Running   0          25s
+deployment.apps "broken-image" deleted from incidentdesk namespace
+
+########## 2. broken Service selector ##########
+$ kubectl apply -f troubleshooting/broken-service.yaml
+service/incidentdesk-backend-broken created
+$ kubectl -n incidentdesk get endpoints incidentdesk-backend-broken
+Warning: v1 Endpoints is deprecated in v1.33+; use discovery.k8s.io/v1 EndpointSlice
+NAME                          ENDPOINTS   AGE
+incidentdesk-backend-broken   <none>      5s
+$ kubectl -n incidentdesk get pods -l app.kubernetes.io/component=backend --show-labels
+NAME                                    READY   STATUS    RESTARTS   AGE   LABELS
+incidentdesk-backend-78f9c7f5cd-p4k6l   1/1     Running   0          18m   app.kubernetes.io/component=backend,app.kubernetes.io/instance=incidentdesk,app.kubernetes.io/name=incidentdesk,pod-template-hash=78f9c7f5cd
+incidentdesk-backend-78f9c7f5cd-wqhn5   1/1     Running   0          18m   app.kubernetes.io/component=backend,app.kubernetes.io/instance=incidentdesk,app.kubernetes.io/name=incidentdesk,pod-template-hash=78f9c7f5cd
+FIX: selector component=api -> component=backend
+service/incidentdesk-backend-broken patched
+$ kubectl -n incidentdesk get endpoints incidentdesk-backend-broken
+Warning: v1 Endpoints is deprecated in v1.33+; use discovery.k8s.io/v1 EndpointSlice
+NAME                          ENDPOINTS                          AGE
+incidentdesk-backend-broken   10.244.1.11:8000,10.244.1.9:8000   10s
+service "incidentdesk-backend-broken" deleted from incidentdesk namespace

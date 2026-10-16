@@ -16,8 +16,8 @@ Developer ─► Git/GitHub ─► GitHub Actions ─┬─ pytest + ruff + fron
 **Domain:** incident management (not the TaskBoard reference). The DevOps layer follows the
 Session 21 architecture.
 
-**Evidence:** every log and screenshot in [`demo/`](demo) comes from a real GitHub Actions run
-of this repository. Links are in [Evidence](#evidence).
+**Evidence:** every log and screenshot in [`demo/`](demo) comes from one real GitHub Actions run
+of this repository, [run #5](https://github.com/BinaryBhakti/incidentdesk-devops-capstone/actions/runs/38940190952) (all 5 jobs green). Links are in [Evidence](#evidence).
 
 ---
 
@@ -205,9 +205,10 @@ The chart ([`helm/incidentdesk`](helm/incidentdesk)) renders:
 Plain manifests for the same objects are in [`k8s/`](k8s) (`k8s/99-apply.sh`).
 
 **GitOps:** [`gitops/application-ci.yaml`](gitops/application-ci.yaml) is an Argo CD Application
-that syncs `helm/incidentdesk` from this repo's `main` with auto-sync, prune and self-heal. The
-deploy job installs Argo CD, waits for **Synced / Healthy**, then deletes a Service by hand and
-shows Argo CD recreating it ([log](demo/evidence/argocd.txt)).
+that syncs `helm/incidentdesk` from this repo's `main` with auto-sync, prune and self-heal. In the
+CI run, Argo CD deployed the chart into `incidentdesk-gitops`: application **Healthy**, all 5
+pods Running. Its sync status ended **Unknown**, though, and the self-heal test (delete a Service
+by hand) was not recreated within 90 s. See [log](demo/evidence/argocd.txt) and Known issues.
 
 ## 9. Observability
 
@@ -245,7 +246,7 @@ The first two run in CI on every deploy: break, observe, fix ([log](demo/evidenc
 
 ## Evidence
 
-All of this comes from the GitHub Actions run linked in [`demo/README.md`](demo/README.md).
+All of this comes from [run #5](https://github.com/BinaryBhakti/incidentdesk-devops-capstone/actions/runs/38940190952).
 
 | Rubric item | Evidence |
 |---|---|
@@ -253,15 +254,15 @@ All of this comes from the GitHub Actions run linked in [`demo/README.md`](demo/
 | Frontend build | [`demo/evidence/frontend-build.txt`](demo/evidence/frontend-build.txt) |
 | Docker images, non-root | [`demo/evidence/docker-build.txt`](demo/evidence/docker-build.txt) |
 | Trivy scan | [`demo/evidence/trivy-scan.txt`](demo/evidence/trivy-scan.txt) · ![](demo/screenshots/trivy-scan.png) |
-| GHCR push (SHA tags) | [`demo/evidence/ghcr-push.txt`](demo/evidence/ghcr-push.txt) · ![](demo/screenshots/ghcr-packages.png) |
+| GHCR push (SHA tags) | [`demo/evidence/ghcr-push.txt`](demo/evidence/ghcr-push.txt) |
 | Pipeline green | ![](demo/screenshots/github-actions-run.png) |
 | Terraform plan / apply / destroy | [`plan`](demo/evidence/terraform-plan.txt) · [`apply`](demo/evidence/terraform-apply.txt) · [`destroy`](demo/evidence/terraform-destroy.txt) · ![](demo/screenshots/terraform-plan.png) |
-| `kubectl get pods/svc`, `helm list` | [`demo/evidence/kubectl-get-all.txt`](demo/evidence/kubectl-get-all.txt) · ![](demo/screenshots/kubectl-get-all.png) |
+| `kubectl get pods/svc/ingress/hpa`, `helm list` (HPA scaled backend 2 → 5 under load) | [`demo/evidence/kubectl-get-all.txt`](demo/evidence/kubectl-get-all.txt) · ![](demo/screenshots/kubectl-get-all.png) |
 | App through the Ingress | ![](demo/screenshots/app-via-ingress.png) |
-| `/metrics` | [`demo/evidence/backend-metrics.txt`](demo/evidence/backend-metrics.txt) |
-| Prometheus targets UP | ![](demo/screenshots/prometheus-targets.png) |
-| Grafana dashboard | ![](demo/screenshots/grafana-dashboard.png) |
-| Argo CD Synced / Healthy | [`demo/evidence/argocd.txt`](demo/evidence/argocd.txt) |
+| `/metrics`, Prometheus targets UP (5/5 backend pods `up = 1`), live req/s per route, Grafana API + provisioned dashboard | [`backend-metrics.txt`](demo/evidence/backend-metrics.txt) · [`prometheus-grafana.txt`](demo/evidence/prometheus-grafana.txt) · ![](demo/screenshots/metrics-and-promql.png) |
+| Argo CD (Healthy, sync Unknown; see Known issues) | [`demo/evidence/argocd.txt`](demo/evidence/argocd.txt) · ![](demo/screenshots/argocd.png) |
+| Troubleshooting lab | [`demo/evidence/troubleshooting.txt`](demo/evidence/troubleshooting.txt) · ![](demo/screenshots/troubleshooting.png) |
+| Terraform apply → destroy | ![](demo/screenshots/terraform-apply-destroy.png) |
 | Commit history | ![](demo/screenshots/commit-history.png) |
 
 ## Known issues and limitations
@@ -278,8 +279,19 @@ All of this comes from the GitHub Actions run linked in [`demo/README.md`](demo/
   artifacts.
 - In-cluster PostgreSQL with a PVC is fine for a demo. For production, Amazon RDS (Multi-AZ,
   automated backups) is the better trade-off.
-- The HPA scales on CPU only. A short CI load test may not push the backend past 60%; scaling
-  is visible in `kubectl get hpa` and on the Grafana *HPA replicas* panel when it does.
+- The HPA scales on CPU only. In the evidence run the load test pushed the backend to 342% of
+  its CPU request, and the HPA scaled it from 2 to 5 replicas (its maximum).
+- **No Prometheus/Grafana UI screenshots.** Headless Chromium in CI loaded the IncidentDesk UI
+  through the Ingress fine, but the Prometheus and Grafana web UIs never rendered (blank page /
+  "failed to load its application files"), through both `port-forward` and the Ingress. What is
+  proven instead: the Prometheus API shows every backend target `up = 1` with live per-route
+  request rates, and the Grafana API (`/api/health`, `/api/search`) shows Grafana healthy with
+  the *IncidentDesk — golden signals* dashboard provisioned. To get the screenshots, run the
+  [observability commands](#9-observability) on any cluster and open the two UIs in a browser.
+- **Argo CD:** it rendered and deployed the chart (Healthy, 5/5 pods Running), but the sync
+  status settled on *Unknown* rather than *Synced*, and the hand-deleted Service was not
+  recreated within 90 s. The step is `continue-on-error`, which is why the green run shows one
+  error annotation. The root cause was not investigated before the deadline.
 - Grafana runs with anonymous viewer access, a demo convenience. Disable it in any shared
   environment.
 

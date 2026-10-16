@@ -1,0 +1,39 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.15, pytest-9.1.1, pluggy-1.7.0 -- /opt/hostedtoolcache/Python/3.12.15/x64/bin/python
+cachedir: .pytest_cache
+rootdir: /home/runner/work/incidentdesk-devops-capstone/incidentdesk-devops-capstone/backend
+configfile: pytest.ini
+testpaths: tests
+plugins: cov-7.1.0, anyio-4.15.1
+collecting ... collected 13 items
+
+tests/test_api.py::test_root_reports_service_name PASSED                 [  7%]
+tests/test_api.py::test_health_is_up_without_touching_db PASSED          [ 15%]
+tests/test_api.py::test_ready_checks_the_database PASSED                 [ 23%]
+tests/test_api.py::test_create_and_get_incident PASSED                   [ 30%]
+tests/test_api.py::test_list_newest_first_and_filter_by_status PASSED    [ 38%]
+tests/test_api.py::test_resolving_sets_resolved_at_and_reopening_clears_it PASSED [ 46%]
+tests/test_api.py::test_partial_update_keeps_other_fields PASSED         [ 53%]
+tests/test_api.py::test_delete_incident PASSED                           [ 61%]
+tests/test_api.py::test_unknown_incident_is_404_for_get_put_delete PASSED [ 69%]
+tests/test_api.py::test_validation_rejects_bad_severity_and_short_title PASSED [ 76%]
+tests/test_api.py::test_stats_counts_by_status_and_open_sev1 PASSED      [ 84%]
+tests/test_api.py::test_metrics_endpoint_exposes_red_and_business_metrics PASSED [ 92%]
+tests/test_api.py::test_no_cors_by_default PASSED                        [100%]
+
+- generated xml file: /home/runner/work/incidentdesk-devops-capstone/incidentdesk-devops-capstone/backend/reports/junit.xml -
+================================ tests coverage ================================
+_______________ coverage: platform linux, python 3.12.15-final-0 _______________
+
+Name              Stmts   Miss  Cover   Missing
+-----------------------------------------------
+app/__init__.py       0      0   100%
+app/config.py         8      0   100%
+app/db.py            12      0   100%
+app/main.py          81      4    95%   20, 58-60
+app/models.py        17      0   100%
+app/schemas.py       30      0   100%
+-----------------------------------------------
+TOTAL               148      4    97%
+Required test coverage of 85% reached. Total coverage: 97.30%
+============================== 13 passed in 0.60s ==============================

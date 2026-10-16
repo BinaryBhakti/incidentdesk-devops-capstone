@@ -1,0 +1,20 @@
+$ docker build -t ghcr.io/binarybhakti/incidentdesk-capstone-backend:076539e7e734b0f8597a5449bf384b6a812b8bb3 ./backend
+#15 exporting layers
+#15 exporting layers 0.7s done
+#15 writing image sha256:76a44f0a33d7be1d5d297b1a3d36bbf97d484cc00d5581ae4a8de01316bab494 done
+#15 naming to ghcr.io/binarybhakti/incidentdesk-capstone-backend:076539e7e734b0f8597a5449bf384b6a812b8bb3 done
+#15 DONE 0.7s
+$ docker build -t ghcr.io/binarybhakti/incidentdesk-capstone-frontend:076539e7e734b0f8597a5449bf384b6a812b8bb3 ./frontend
+#19 exporting layers
+#19 exporting layers 0.8s done
+#19 writing image sha256:1cc289ea7e7b5c24843b9bb0aea84a976796b7c15666ecad3ed73194a3b9f41d done
+#19 naming to ghcr.io/binarybhakti/incidentdesk-capstone-frontend:076539e7e734b0f8597a5449bf384b6a812b8bb3 done
+#19 DONE 0.8s
+
+$ docker images | grep incidentdesk
+ghcr.io/binarybhakti/incidentdesk-capstone-frontend   076539e7e734b0f8597a5449bf384b6a812b8bb3   1cc289ea7e7b   1 second ago    73.8MB
+ghcr.io/binarybhakti/incidentdesk-capstone-backend    076539e7e734b0f8597a5449bf384b6a812b8bb3   76a44f0a33d7   7 seconds ago   214MB
+
+$ docker inspect --format '{{.Config.User}}' (non-root check)
+backend : 10001
+frontend: 101

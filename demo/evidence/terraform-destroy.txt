@@ -1,0 +1,942 @@
+$ terraform destroy -auto-approve -var enable_eks=false
+random_id.suffix: Refreshing state... [id=hEUG]
+data.aws_iam_policy_document.backup_assume: Reading...
+aws_vpc.main: Refreshing state... [id=vpc-aeedc81235fdbbdbc]
+data.aws_iam_policy_document.eks_cluster_assume: Reading...
+aws_dynamodb_table.tf_lock: Refreshing state... [id=incidentdesk-dev-tf-lock]
+aws_s3_bucket.backups: Refreshing state... [id=incidentdesk-dev-db-backups-844506]
+data.aws_iam_policy_document.eks_node_assume: Reading...
+data.aws_iam_policy_document.eks_node_assume: Read complete after 0s [id=2851119427]
+data.aws_iam_policy_document.backup_assume: Read complete after 0s [id=1053036414]
+data.aws_iam_policy_document.eks_cluster_assume: Read complete after 0s [id=1029077455]
+aws_iam_role.backup: Refreshing state... [id=incidentdesk-dev-db-backup]
+aws_security_group.db: Refreshing state... [id=sg-6e48f356e28fe90c4]
+aws_security_group.web: Refreshing state... [id=sg-562af06f6fa0ba874]
+aws_subnet.public[0]: Refreshing state... [id=subnet-7eb9ce9cf64092739]
+aws_subnet.private[1]: Refreshing state... [id=subnet-1a6ab82cf3a0fe21e]
+aws_internet_gateway.main: Refreshing state... [id=igw-6176c2c252b0c5082]
+aws_subnet.private[0]: Refreshing state... [id=subnet-80187af1512f5288f]
+aws_subnet.public[1]: Refreshing state... [id=subnet-233a0419ed3eb4731]
+aws_vpc_security_group_ingress_rule.web_https: Refreshing state... [id=sgr-362a2c0854bb0491c]
+aws_vpc_security_group_ingress_rule.web_http: Refreshing state... [id=sgr-2de9e08d7b2e6e530]
+aws_vpc_security_group_egress_rule.web_to_vpc: Refreshing state... [id=sgr-fb53247aaa968b2fc]
+aws_vpc_security_group_ingress_rule.db_from_web: Refreshing state... [id=sgr-5e943a78307cc3b56]
+aws_route_table.public: Refreshing state... [id=rtb-a47ccbc6bbc105ca6]
+aws_eip.nat: Refreshing state... [id=eipalloc-2bbb50595930d7802]
+aws_route_table_association.public[0]: Refreshing state... [id=rtbassoc-21f4b8992a8c420d1]
+aws_route_table_association.public[1]: Refreshing state... [id=rtbassoc-25da00dcc4120c413]
+aws_nat_gateway.main: Refreshing state... [id=nat-eecf3a38d872585ad]
+aws_s3_bucket_public_access_block.backups: Refreshing state... [id=incidentdesk-dev-db-backups-844506]
+data.aws_iam_policy_document.backup_access: Reading...
+aws_s3_bucket_versioning.backups: Refreshing state... [id=incidentdesk-dev-db-backups-844506]
+aws_s3_bucket_server_side_encryption_configuration.backups: Refreshing state... [id=incidentdesk-dev-db-backups-844506]
+data.aws_iam_policy_document.backup_access: Read complete after 0s [id=2287471932]
+aws_iam_policy.backup: Refreshing state... [id=arn:aws:iam::000000000000:policy/incidentdesk-dev-db-backup]
+aws_route_table.private: Refreshing state... [id=rtb-377f8f7d5a4679349]
+aws_iam_role_policy_attachment.backup: Refreshing state... [id=incidentdesk-dev-db-backup/arn:aws:iam::000000000000:policy/incidentdesk-dev-db-backup]
+aws_route_table_association.private[1]: Refreshing state... [id=rtbassoc-10b0d6afef653f86b]
+aws_route_table_association.private[0]: Refreshing state... [id=rtbassoc-97ea76587133cd709]
+aws_s3_bucket_lifecycle_configuration.backups: Refreshing state... [id=incidentdesk-dev-db-backups-844506]
+
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  - destroy
+
+Terraform will perform the following actions:
+
+  # aws_dynamodb_table.tf_lock will be destroyed
+  - resource "aws_dynamodb_table" "tf_lock" {
+      - arn                         = "arn:aws:dynamodb:ap-south-1:000000000000:table/incidentdesk-dev-tf-lock" -> null
+      - billing_mode                = "PAY_PER_REQUEST" -> null
+      - deletion_protection_enabled = false -> null
+      - hash_key                    = "LockID" -> null
+      - id                          = "incidentdesk-dev-tf-lock" -> null
+      - name                        = "incidentdesk-dev-tf-lock" -> null
+      - read_capacity               = 0 -> null
+      - region                      = "ap-south-1" -> null
+      - stream_enabled              = false -> null
+      - table_class                 = "STANDARD" -> null
+      - tags                        = {
+          - "Name" = "incidentdesk-dev-tf-lock"
+        } -> null
+      - tags_all                    = {
+          - "Environment" = "dev"
+          - "ManagedBy"   = "Terraform"
+          - "Name"        = "incidentdesk-dev-tf-lock"
+          - "Project"     = "incidentdesk"
+          - "Session"     = "21"
+        } -> null
+      - write_capacity              = 0 -> null
+        # (3 unchanged attributes hidden)
+
+      - attribute {
+          - name = "LockID" -> null
+          - type = "S" -> null
+        }
+
+      - point_in_time_recovery {
+          - enabled                 = false -> null
+          - recovery_period_in_days = 0 -> null
+        }
+
+      - ttl {
+          - enabled        = false -> null
+            # (1 unchanged attribute hidden)
+        }
+    }
+
+  # aws_eip.nat will be destroyed
+  - resource "aws_eip" "nat" {
+      - allocation_id            = "eipalloc-2bbb50595930d7802" -> null
+      - arn                      = "arn:aws:ec2:ap-south-1::elastic-ip/eipalloc-2bbb50595930d7802" -> null
+      - association_id           = "eipassoc-cbd9a17cf20d29a35" -> null
+      - domain                   = "vpc" -> null
+      - id                       = "eipalloc-2bbb50595930d7802" -> null
+      - network_interface        = "eni-db9e0c634c7d51432" -> null
+      - private_dns              = "ip-10-228-232-180.ap-south-1.compute.internal" -> null
+      - private_ip               = "10.228.232.180" -> null
+      - public_dns               = "ec2-127-31-0-109.ap-south-1.compute.amazonaws.com" -> null
+      - public_ip                = "127.31.0.109" -> null
+      - region                   = "ap-south-1" -> null
+      - tags                     = {
+          - "Name" = "incidentdesk-dev-nat-eip"
+        } -> null
+      - tags_all                 = {
+          - "Environment" = "dev"
+          - "ManagedBy"   = "Terraform"
+          - "Name"        = "incidentdesk-dev-nat-eip"
+          - "Project"     = "incidentdesk"
+          - "Session"     = "21"
+        } -> null
+        # (8 unchanged attributes hidden)
+    }
+
+  # aws_iam_policy.backup will be destroyed
+  - resource "aws_iam_policy" "backup" {
+      - arn              = "arn:aws:iam::000000000000:policy/incidentdesk-dev-db-backup" -> null
+      - attachment_count = 1 -> null
+      - id               = "arn:aws:iam::000000000000:policy/incidentdesk-dev-db-backup" -> null
+      - name             = "incidentdesk-dev-db-backup" -> null
+      - path             = "/" -> null
+      - policy           = jsonencode(
+            {
+              - Statement = [
+                  - {
+                      - Action   = [
+                          - "s3:PutObject",
+                          - "s3:GetObject",
+                        ]
+                      - Effect   = "Allow"
+                      - Resource = "arn:aws:s3:::incidentdesk-dev-db-backups-844506/postgres/*"
+                      - Sid      = "WriteBackups"
+                    },
+                  - {
+                      - Action    = "s3:ListBucket"
+                      - Condition = {
+                          - StringLike = {
+                              - "s3:prefix" = "postgres/*"
+                            }
+                        }
+                      - Effect    = "Allow"
+                      - Resource  = "arn:aws:s3:::incidentdesk-dev-db-backups-844506"
+                      - Sid       = "ListBackupPrefix"
+                    },
+                ]
+              - Version   = "2012-10-17"
+            }
+        ) -> null
+      - policy_id        = "A5WGWKC9YBZS4UE5V21PC" -> null
+      - tags             = {} -> null
+      - tags_all         = {
+          - "Environment" = "dev"
+          - "ManagedBy"   = "Terraform"
+          - "Project"     = "incidentdesk"
+          - "Session"     = "21"
+        } -> null
+        # (2 unchanged attributes hidden)
+    }
+
+  # aws_iam_role.backup will be destroyed
+  - resource "aws_iam_role" "backup" {
+      - arn                   = "arn:aws:iam::000000000000:role/incidentdesk-dev-db-backup" -> null
+      - assume_role_policy    = jsonencode(
+            {
+              - Statement = [
+                  - {
+                      - Action    = "sts:AssumeRole"
+                      - Effect    = "Allow"
+                      - Principal = {
+                          - Service = "pods.eks.amazonaws.com"
+                        }
+                    },
+                ]
+              - Version   = "2012-10-17"
+            }
+        ) -> null
+      - create_date           = "2026-10-16T17:31:26Z" -> null
+      - force_detach_policies = false -> null
+      - id                    = "incidentdesk-dev-db-backup" -> null
+      - managed_policy_arns   = [
+          - "arn:aws:iam::000000000000:policy/incidentdesk-dev-db-backup",
+        ] -> null
+      - max_session_duration  = 3600 -> null
+      - name                  = "incidentdesk-dev-db-backup" -> null
+      - path                  = "/" -> null
+      - tags                  = {} -> null
+      - tags_all              = {
+          - "Environment" = "dev"
+          - "ManagedBy"   = "Terraform"
+          - "Project"     = "incidentdesk"
+          - "Session"     = "21"
+        } -> null
+      - unique_id             = "AROAQAAAAAAAJDSUAZ7O6" -> null
+        # (3 unchanged attributes hidden)
+    }
+
+  # aws_iam_role_policy_attachment.backup will be destroyed
+  - resource "aws_iam_role_policy_attachment" "backup" {
+      - id         = "incidentdesk-dev-db-backup/arn:aws:iam::000000000000:policy/incidentdesk-dev-db-backup" -> null
+      - policy_arn = "arn:aws:iam::000000000000:policy/incidentdesk-dev-db-backup" -> null
+      - role       = "incidentdesk-dev-db-backup" -> null
+    }
+
+  # aws_internet_gateway.main will be destroyed
+  - resource "aws_internet_gateway" "main" {
+      - arn      = "arn:aws:ec2:ap-south-1:000000000000:internet-gateway/igw-6176c2c252b0c5082" -> null
+      - id       = "igw-6176c2c252b0c5082" -> null
+      - owner_id = "000000000000" -> null
+      - region   = "ap-south-1" -> null
+      - tags     = {
+          - "Name" = "incidentdesk-dev-igw"
+        } -> null
+      - tags_all = {
+          - "Environment" = "dev"
+          - "ManagedBy"   = "Terraform"
+          - "Name"        = "incidentdesk-dev-igw"
+          - "Project"     = "incidentdesk"
+          - "Session"     = "21"
+        } -> null
+      - vpc_id   = "vpc-aeedc81235fdbbdbc" -> null
+    }
+
+  # aws_nat_gateway.main will be destroyed
+  - resource "aws_nat_gateway" "main" {
+      - allocation_id                  = "eipalloc-2bbb50595930d7802" -> null
+      - connectivity_type              = "public" -> null
+      - id                             = "nat-eecf3a38d872585ad" -> null
+      - region                         = "ap-south-1" -> null
+      - regional_nat_gateway_address   = [] -> null
+      - secondary_allocation_ids       = [] -> null
+      - secondary_private_ip_addresses = [] -> null
+      - subnet_id                      = "subnet-7eb9ce9cf64092739" -> null
+      - tags                           = {
+          - "Name" = "incidentdesk-dev-nat"
+        } -> null
+      - tags_all                       = {
+          - "Environment" = "dev"
+          - "ManagedBy"   = "Terraform"
+          - "Name"        = "incidentdesk-dev-nat"
+          - "Project"     = "incidentdesk"
+          - "Session"     = "21"
+        } -> null
+      - vpc_id                         = "vpc-aeedc81235fdbbdbc" -> null
+        # (1 unchanged attribute hidden)
+    }
+
+  # aws_route_table.private will be destroyed
+  - resource "aws_route_table" "private" {
+      - arn              = "arn:aws:ec2:ap-south-1:000000000000:route-table/rtb-377f8f7d5a4679349" -> null
+      - id               = "rtb-377f8f7d5a4679349" -> null
+      - owner_id         = "000000000000" -> null
+      - propagating_vgws = [] -> null
+      - region           = "ap-south-1" -> null
+      - route            = [
+          - {
+              - cidr_block                 = "0.0.0.0/0"
+              - nat_gateway_id             = "nat-eecf3a38d872585ad"
+                # (12 unchanged attributes hidden)
+            },
+        ] -> null
+      - tags             = {
+          - "Name" = "incidentdesk-dev-private-rt"
+        } -> null
+      - tags_all         = {
+          - "Environment" = "dev"
+          - "ManagedBy"   = "Terraform"
+          - "Name"        = "incidentdesk-dev-private-rt"
+          - "Project"     = "incidentdesk"
+          - "Session"     = "21"
+        } -> null
+      - vpc_id           = "vpc-aeedc81235fdbbdbc" -> null
+    }
+
+  # aws_route_table.public will be destroyed
+  - resource "aws_route_table" "public" {
+      - arn              = "arn:aws:ec2:ap-south-1:000000000000:route-table/rtb-a47ccbc6bbc105ca6" -> null
+      - id               = "rtb-a47ccbc6bbc105ca6" -> null
+      - owner_id         = "000000000000" -> null
+      - propagating_vgws = [] -> null
+      - region           = "ap-south-1" -> null
+      - route            = [
+          - {
+              - cidr_block                 = "0.0.0.0/0"
+              - gateway_id                 = "igw-6176c2c252b0c5082"
+                # (12 unchanged attributes hidden)
+            },
+        ] -> null
+      - tags             = {
+          - "Name" = "incidentdesk-dev-public-rt"
+        } -> null
+      - tags_all         = {
+          - "Environment" = "dev"
+          - "ManagedBy"   = "Terraform"
+          - "Name"        = "incidentdesk-dev-public-rt"
+          - "Project"     = "incidentdesk"
+          - "Session"     = "21"
+        } -> null
+      - vpc_id           = "vpc-aeedc81235fdbbdbc" -> null
+    }
+
+  # aws_route_table_association.private[0] will be destroyed
+  - resource "aws_route_table_association" "private" {
+      - id             = "rtbassoc-97ea76587133cd709" -> null
+      - region         = "ap-south-1" -> null
+      - route_table_id = "rtb-377f8f7d5a4679349" -> null
+      - subnet_id      = "subnet-80187af1512f5288f" -> null
+        # (1 unchanged attribute hidden)
+    }
+
+  # aws_route_table_association.private[1] will be destroyed
+  - resource "aws_route_table_association" "private" {
+      - id             = "rtbassoc-10b0d6afef653f86b" -> null
+      - region         = "ap-south-1" -> null
+      - route_table_id = "rtb-377f8f7d5a4679349" -> null
+      - subnet_id      = "subnet-1a6ab82cf3a0fe21e" -> null
+        # (1 unchanged attribute hidden)
+    }
+
+  # aws_route_table_association.public[0] will be destroyed
+  - resource "aws_route_table_association" "public" {
+      - id             = "rtbassoc-21f4b8992a8c420d1" -> null
+      - region         = "ap-south-1" -> null
+      - route_table_id = "rtb-a47ccbc6bbc105ca6" -> null
+      - subnet_id      = "subnet-7eb9ce9cf64092739" -> null
+        # (1 unchanged attribute hidden)
+    }
+
+  # aws_route_table_association.public[1] will be destroyed
+  - resource "aws_route_table_association" "public" {
+      - id             = "rtbassoc-25da00dcc4120c413" -> null
+      - region         = "ap-south-1" -> null
+      - route_table_id = "rtb-a47ccbc6bbc105ca6" -> null
+      - subnet_id      = "subnet-233a0419ed3eb4731" -> null
+        # (1 unchanged attribute hidden)
+    }
+
+  # aws_s3_bucket.backups will be destroyed
+  - resource "aws_s3_bucket" "backups" {
+      - arn                         = "arn:aws:s3:::incidentdesk-dev-db-backups-844506" -> null
+      - bucket                      = "incidentdesk-dev-db-backups-844506" -> null
+      - bucket_domain_name          = "incidentdesk-dev-db-backups-844506.s3.amazonaws.com" -> null
+      - bucket_namespace            = "global" -> null
+      - bucket_region               = "ap-south-1" -> null
+      - bucket_regional_domain_name = "incidentdesk-dev-db-backups-844506.s3.ap-south-1.amazonaws.com" -> null
+      - force_destroy               = true -> null
+      - hosted_zone_id              = "Z11RGJOFQNVJUP" -> null
+      - id                          = "incidentdesk-dev-db-backups-844506" -> null
+      - object_lock_enabled         = false -> null
+      - region                      = "ap-south-1" -> null
+      - request_payer               = "BucketOwner" -> null
+      - tags                        = {
+          - "Name"    = "incidentdesk-dev-db-backups"
+          - "Purpose" = "postgres-backups"
+        } -> null
+      - tags_all                    = {
+          - "Environment" = "dev"
+          - "ManagedBy"   = "Terraform"
+          - "Name"        = "incidentdesk-dev-db-backups"
+          - "Project"     = "incidentdesk"
+          - "Purpose"     = "postgres-backups"
+          - "Session"     = "21"
+        } -> null
+        # (3 unchanged attributes hidden)
+
+      - grant {
+          - id          = "75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a" -> null
+          - permissions = [
+              - "FULL_CONTROL",
+            ] -> null
+          - type        = "CanonicalUser" -> null
+            # (1 unchanged attribute hidden)
+        }
+
+      - lifecycle_rule {
+          - abort_incomplete_multipart_upload_days = 0 -> null
+          - enabled                                = true -> null
+          - id                                     = "tier-then-expire" -> null
+          - prefix                                 = "postgres/" -> null
+          - tags                                   = {} -> null
+
+          - expiration {
+              - days                         = 90 -> null
+              - expired_object_delete_marker = false -> null
+                # (1 unchanged attribute hidden)
+            }
+
+          - noncurrent_version_expiration {
+              - days = 30 -> null
+            }
+
+          - transition {
+              - days          = 30 -> null
+              - storage_class = "STANDARD_IA" -> null
+                # (1 unchanged attribute hidden)
+            }
+        }
+
+      - server_side_encryption_configuration {
+          - rule {
+              - bucket_key_enabled = false -> null
+
+              - apply_server_side_encryption_by_default {
+                  - sse_algorithm     = "AES256" -> null
+                    # (1 unchanged attribute hidden)
+                }
+            }
+        }
+
+      - versioning {
+          - enabled    = true -> null
+          - mfa_delete = false -> null
+        }
+    }
+
+  # aws_s3_bucket_lifecycle_configuration.backups will be destroyed
+  - resource "aws_s3_bucket_lifecycle_configuration" "backups" {
+      - bucket                                 = "incidentdesk-dev-db-backups-844506" -> null
+      - id                                     = "incidentdesk-dev-db-backups-844506" -> null
+      - region                                 = "ap-south-1" -> null
+      - transition_default_minimum_object_size = "all_storage_classes_128K" -> null
+        # (1 unchanged attribute hidden)
+
+      - rule {
+          - id     = "tier-then-expire" -> null
+          - status = "Enabled" -> null
+            # (1 unchanged attribute hidden)
+
+          - expiration {
+              - days                         = 90 -> null
+              - expired_object_delete_marker = false -> null
+            }
+
+          - filter {
+              - prefix = "postgres/" -> null
+            }
+
+          - noncurrent_version_expiration {
+              - noncurrent_days = 30 -> null
+            }
+
+          - transition {
+              - days          = 30 -> null
+              - storage_class = "STANDARD_IA" -> null
+            }
+        }
+    }
+
+  # aws_s3_bucket_public_access_block.backups will be destroyed
+  - resource "aws_s3_bucket_public_access_block" "backups" {
+      - block_public_acls       = true -> null
+      - block_public_policy     = true -> null
+      - bucket                  = "incidentdesk-dev-db-backups-844506" -> null
+      - id                      = "incidentdesk-dev-db-backups-844506" -> null
+      - ignore_public_acls      = true -> null
+      - region                  = "ap-south-1" -> null
+      - restrict_public_buckets = true -> null
+    }
+
+  # aws_s3_bucket_server_side_encryption_configuration.backups will be destroyed
+  - resource "aws_s3_bucket_server_side_encryption_configuration" "backups" {
+      - bucket                = "incidentdesk-dev-db-backups-844506" -> null
+      - id                    = "incidentdesk-dev-db-backups-844506" -> null
+      - region                = "ap-south-1" -> null
+        # (1 unchanged attribute hidden)
+
+      - rule {
+          - blocked_encryption_types = [] -> null
+          - bucket_key_enabled       = false -> null
+
+          - apply_server_side_encryption_by_default {
+              - sse_algorithm     = "AES256" -> null
+                # (1 unchanged attribute hidden)
+            }
+        }
+    }
+
+  # aws_s3_bucket_versioning.backups will be destroyed
+  - resource "aws_s3_bucket_versioning" "backups" {
+      - bucket                = "incidentdesk-dev-db-backups-844506" -> null
+      - id                    = "incidentdesk-dev-db-backups-844506" -> null
+      - region                = "ap-south-1" -> null
+        # (1 unchanged attribute hidden)
+
+      - versioning_configuration {
+          - mfa_delete = "Disabled" -> null
+          - status     = "Enabled" -> null
+        }
+    }
+
+  # aws_security_group.db will be destroyed
+  - resource "aws_security_group" "db" {
+      - arn                    = "arn:aws:ec2:ap-south-1:000000000000:security-group/sg-6e48f356e28fe90c4" -> null
+      - description            = "PostgreSQL, reachable from the web tier only" -> null
+      - egress                 = [] -> null
+      - id                     = "sg-6e48f356e28fe90c4" -> null
+      - ingress                = [
+          - {
+              - cidr_blocks      = []
+              - description      = "PostgreSQL from the web tier"
+              - from_port        = 5432
+              - ipv6_cidr_blocks = []
+              - prefix_list_ids  = []
+              - protocol         = "tcp"
+              - security_groups  = [
+                  - "sg-562af06f6fa0ba874",
+                ]
+              - self             = false
+              - to_port          = 5432
+            },
+        ] -> null
+      - name                   = "incidentdesk-dev-db" -> null
+      - owner_id               = "000000000000" -> null
+      - region                 = "ap-south-1" -> null
+      - revoke_rules_on_delete = false -> null
+      - tags                   = {
+          - "Name" = "incidentdesk-dev-db"
+        } -> null
+      - tags_all               = {
+          - "Environment" = "dev"
+          - "ManagedBy"   = "Terraform"
+          - "Name"        = "incidentdesk-dev-db"
+          - "Project"     = "incidentdesk"
+          - "Session"     = "21"
+        } -> null
+      - vpc_id                 = "vpc-aeedc81235fdbbdbc" -> null
+        # (1 unchanged attribute hidden)
+    }
+
+  # aws_security_group.web will be destroyed
+  - resource "aws_security_group" "web" {
+      - arn                    = "arn:aws:ec2:ap-south-1:000000000000:security-group/sg-562af06f6fa0ba874" -> null
+      - description            = "Ingress controller / load balancer" -> null
+      - egress                 = [
+          - {
+              - cidr_blocks      = [
+                  - "10.20.0.0/16",
+                ]
+              - description      = "Forward to targets inside the VPC only"
+              - from_port        = 0
+              - ipv6_cidr_blocks = []
+              - prefix_list_ids  = []
+              - protocol         = "-1"
+              - security_groups  = []
+              - self             = false
+              - to_port          = 0
+            },
+        ] -> null
+      - id                     = "sg-562af06f6fa0ba874" -> null
+      - ingress                = [
+          - {
+              - cidr_blocks      = [
+                  - "0.0.0.0/0",
+                ]
+              - description      = "HTTP from anywhere (redirected to HTTPS)"
+              - from_port        = 80
+              - ipv6_cidr_blocks = []
+              - prefix_list_ids  = []
+              - protocol         = "tcp"
+              - security_groups  = []
+              - self             = false
+              - to_port          = 80
+            },
+          - {
+              - cidr_blocks      = [
+                  - "0.0.0.0/0",
+                ]
+              - description      = "HTTPS from anywhere"
+              - from_port        = 443
+              - ipv6_cidr_blocks = []
+              - prefix_list_ids  = []
+              - protocol         = "tcp"
+              - security_groups  = []
+              - self             = false
+              - to_port          = 443
+            },
+        ] -> null
+      - name                   = "incidentdesk-dev-web" -> null
+      - owner_id               = "000000000000" -> null
+      - region                 = "ap-south-1" -> null
+      - revoke_rules_on_delete = false -> null
+      - tags                   = {
+          - "Name" = "incidentdesk-dev-web"
+        } -> null
+      - tags_all               = {
+          - "Environment" = "dev"
+          - "ManagedBy"   = "Terraform"
+          - "Name"        = "incidentdesk-dev-web"
+          - "Project"     = "incidentdesk"
+          - "Session"     = "21"
+        } -> null
+      - vpc_id                 = "vpc-aeedc81235fdbbdbc" -> null
+        # (1 unchanged attribute hidden)
+    }
+
+  # aws_subnet.private[0] will be destroyed
+  - resource "aws_subnet" "private" {
+      - arn                                            = "arn:aws:ec2:ap-south-1:000000000000:subnet/subnet-80187af1512f5288f" -> null
+      - assign_ipv6_address_on_creation                = false -> null
+      - availability_zone                              = "ap-south-1a" -> null
+      - availability_zone_id                           = "aps1-az1" -> null
+      - cidr_block                                     = "10.20.10.0/24" -> null
+      - enable_dns64                                   = false -> null
+      - enable_lni_at_device_index                     = 0 -> null
+      - enable_resource_name_dns_a_record_on_launch    = false -> null
+      - enable_resource_name_dns_aaaa_record_on_launch = false -> null
+      - id                                             = "subnet-80187af1512f5288f" -> null
+      - ipv6_native                                    = false -> null
+      - map_customer_owned_ip_on_launch                = false -> null
+      - map_public_ip_on_launch                        = false -> null
+      - owner_id                                       = "000000000000" -> null
+      - private_dns_hostname_type_on_launch            = "ip-name" -> null
+      - region                                         = "ap-south-1" -> null
+      - tags                                           = {
+          - "Name"                            = "incidentdesk-dev-private-ap-south-1a"
+          - "Tier"                            = "private"
+          - "kubernetes.io/role/internal-elb" = "1"
+        } -> null
+      - tags_all                                       = {
+          - "Environment"                     = "dev"
+          - "ManagedBy"                       = "Terraform"
+          - "Name"                            = "incidentdesk-dev-private-ap-south-1a"
+          - "Project"                         = "incidentdesk"
+          - "Session"                         = "21"
+          - "Tier"                            = "private"
+          - "kubernetes.io/role/internal-elb" = "1"
+        } -> null
+      - vpc_id                                         = "vpc-aeedc81235fdbbdbc" -> null
+        # (4 unchanged attributes hidden)
+    }
+
+  # aws_subnet.private[1] will be destroyed
+  - resource "aws_subnet" "private" {
+      - arn                                            = "arn:aws:ec2:ap-south-1:000000000000:subnet/subnet-1a6ab82cf3a0fe21e" -> null
+      - assign_ipv6_address_on_creation                = false -> null
+      - availability_zone                              = "ap-south-1b" -> null
+      - availability_zone_id                           = "aps1-az3" -> null
+      - cidr_block                                     = "10.20.11.0/24" -> null
+      - enable_dns64                                   = false -> null
+      - enable_lni_at_device_index                     = 0 -> null
+      - enable_resource_name_dns_a_record_on_launch    = false -> null
+      - enable_resource_name_dns_aaaa_record_on_launch = false -> null
+      - id                                             = "subnet-1a6ab82cf3a0fe21e" -> null
+      - ipv6_native                                    = false -> null
+      - map_customer_owned_ip_on_launch                = false -> null
+      - map_public_ip_on_launch                        = false -> null
+      - owner_id                                       = "000000000000" -> null
+      - private_dns_hostname_type_on_launch            = "ip-name" -> null
+      - region                                         = "ap-south-1" -> null
+      - tags                                           = {
+          - "Name"                            = "incidentdesk-dev-private-ap-south-1b"
+          - "Tier"                            = "private"
+          - "kubernetes.io/role/internal-elb" = "1"
+        } -> null
+      - tags_all                                       = {
+          - "Environment"                     = "dev"
+          - "ManagedBy"                       = "Terraform"
+          - "Name"                            = "incidentdesk-dev-private-ap-south-1b"
+          - "Project"                         = "incidentdesk"
+          - "Session"                         = "21"
+          - "Tier"                            = "private"
+          - "kubernetes.io/role/internal-elb" = "1"
+        } -> null
+      - vpc_id                                         = "vpc-aeedc81235fdbbdbc" -> null
+        # (4 unchanged attributes hidden)
+    }
+
+  # aws_subnet.public[0] will be destroyed
+  - resource "aws_subnet" "public" {
+      - arn                                            = "arn:aws:ec2:ap-south-1:000000000000:subnet/subnet-7eb9ce9cf64092739" -> null
+      - assign_ipv6_address_on_creation                = false -> null
+      - availability_zone                              = "ap-south-1a" -> null
+      - availability_zone_id                           = "aps1-az1" -> null
+      - cidr_block                                     = "10.20.0.0/24" -> null
+      - enable_dns64                                   = false -> null
+      - enable_lni_at_device_index                     = 0 -> null
+      - enable_resource_name_dns_a_record_on_launch    = false -> null
+      - enable_resource_name_dns_aaaa_record_on_launch = false -> null
+      - id                                             = "subnet-7eb9ce9cf64092739" -> null
+      - ipv6_native                                    = false -> null
+      - map_customer_owned_ip_on_launch                = false -> null
+      - map_public_ip_on_launch                        = false -> null
+      - owner_id                                       = "000000000000" -> null
+      - private_dns_hostname_type_on_launch            = "ip-name" -> null
+      - region                                         = "ap-south-1" -> null
+      - tags                                           = {
+          - "Name"                   = "incidentdesk-dev-public-ap-south-1a"
+          - "Tier"                   = "public"
+          - "kubernetes.io/role/elb" = "1"
+        } -> null
+      - tags_all                                       = {
+          - "Environment"            = "dev"
+          - "ManagedBy"              = "Terraform"
+          - "Name"                   = "incidentdesk-dev-public-ap-south-1a"
+          - "Project"                = "incidentdesk"
+          - "Session"                = "21"
+          - "Tier"                   = "public"
+          - "kubernetes.io/role/elb" = "1"
+        } -> null
+      - vpc_id                                         = "vpc-aeedc81235fdbbdbc" -> null
+        # (4 unchanged attributes hidden)
+    }
+
+  # aws_subnet.public[1] will be destroyed
+  - resource "aws_subnet" "public" {
+      - arn                                            = "arn:aws:ec2:ap-south-1:000000000000:subnet/subnet-233a0419ed3eb4731" -> null
+      - assign_ipv6_address_on_creation                = false -> null
+      - availability_zone                              = "ap-south-1b" -> null
+      - availability_zone_id                           = "aps1-az3" -> null
+      - cidr_block                                     = "10.20.1.0/24" -> null
+      - enable_dns64                                   = false -> null
+      - enable_lni_at_device_index                     = 0 -> null
+      - enable_resource_name_dns_a_record_on_launch    = false -> null
+      - enable_resource_name_dns_aaaa_record_on_launch = false -> null
+      - id                                             = "subnet-233a0419ed3eb4731" -> null
+      - ipv6_native                                    = false -> null
+      - map_customer_owned_ip_on_launch                = false -> null
+      - map_public_ip_on_launch                        = false -> null
+      - owner_id                                       = "000000000000" -> null
+      - private_dns_hostname_type_on_launch            = "ip-name" -> null
+      - region                                         = "ap-south-1" -> null
+      - tags                                           = {
+          - "Name"                   = "incidentdesk-dev-public-ap-south-1b"
+          - "Tier"                   = "public"
+          - "kubernetes.io/role/elb" = "1"
+        } -> null
+      - tags_all                                       = {
+          - "Environment"            = "dev"
+          - "ManagedBy"              = "Terraform"
+          - "Name"                   = "incidentdesk-dev-public-ap-south-1b"
+          - "Project"                = "incidentdesk"
+          - "Session"                = "21"
+          - "Tier"                   = "public"
+          - "kubernetes.io/role/elb" = "1"
+        } -> null
+      - vpc_id                                         = "vpc-aeedc81235fdbbdbc" -> null
+        # (4 unchanged attributes hidden)
+    }
+
+  # aws_vpc.main will be destroyed
+  - resource "aws_vpc" "main" {
+      - arn                                  = "arn:aws:ec2:ap-south-1:000000000000:vpc/vpc-aeedc81235fdbbdbc" -> null
+      - assign_generated_ipv6_cidr_block     = false -> null
+      - cidr_block                           = "10.20.0.0/16" -> null
+      - default_network_acl_id               = "acl-647d660481cb851d4" -> null
+      - default_route_table_id               = "rtb-8561bb37f36999c2b" -> null
+      - default_security_group_id            = "sg-868e95f768bd64822" -> null
+      - dhcp_options_id                      = "default" -> null
+      - enable_dns_hostnames                 = true -> null
+      - enable_dns_support                   = true -> null
+      - enable_network_address_usage_metrics = false -> null
+      - id                                   = "vpc-aeedc81235fdbbdbc" -> null
+      - instance_tenancy                     = "default" -> null
+      - ipv6_netmask_length                  = 0 -> null
+      - main_route_table_id                  = "rtb-8561bb37f36999c2b" -> null
+      - owner_id                             = "000000000000" -> null
+      - region                               = "ap-south-1" -> null
+      - tags                                 = {
+          - "Name" = "incidentdesk-dev-vpc"
+        } -> null
+      - tags_all                             = {
+          - "Environment" = "dev"
+          - "ManagedBy"   = "Terraform"
+          - "Name"        = "incidentdesk-dev-vpc"
+          - "Project"     = "incidentdesk"
+          - "Session"     = "21"
+        } -> null
+        # (4 unchanged attributes hidden)
+    }
+
+  # aws_vpc_security_group_egress_rule.web_to_vpc will be destroyed
+  - resource "aws_vpc_security_group_egress_rule" "web_to_vpc" {
+      - arn                    = "arn:aws:ec2:ap-south-1::security-group-rule/sgr-fb53247aaa968b2fc" -> null
+      - cidr_ipv4              = "10.20.0.0/16" -> null
+      - description            = "Forward to targets inside the VPC only" -> null
+      - id                     = "sgr-fb53247aaa968b2fc" -> null
+      - ip_protocol            = "-1" -> null
+      - region                 = "ap-south-1" -> null
+      - security_group_id      = "sg-562af06f6fa0ba874" -> null
+      - security_group_rule_id = "sgr-fb53247aaa968b2fc" -> null
+      - tags_all               = {
+          - "Environment" = "dev"
+          - "ManagedBy"   = "Terraform"
+          - "Project"     = "incidentdesk"
+          - "Session"     = "21"
+        } -> null
+    }
+
+  # aws_vpc_security_group_ingress_rule.db_from_web will be destroyed
+  - resource "aws_vpc_security_group_ingress_rule" "db_from_web" {
+      - arn                          = "arn:aws:ec2:ap-south-1::security-group-rule/sgr-5e943a78307cc3b56" -> null
+      - from_port                    = 5432 -> null
+      - id                           = "sgr-5e943a78307cc3b56" -> null
+      - ip_protocol                  = "tcp" -> null
+      - referenced_security_group_id = "000000000000/sg-562af06f6fa0ba874" -> null
+      - region                       = "ap-south-1" -> null
+      - security_group_id            = "sg-6e48f356e28fe90c4" -> null
+      - security_group_rule_id       = "sgr-5e943a78307cc3b56" -> null
+      - tags_all                     = {
+          - "Environment" = "dev"
+          - "ManagedBy"   = "Terraform"
+          - "Project"     = "incidentdesk"
+          - "Session"     = "21"
+        } -> null
+      - to_port                      = 5432 -> null
+    }
+
+  # aws_vpc_security_group_ingress_rule.web_http will be destroyed
+  - resource "aws_vpc_security_group_ingress_rule" "web_http" {
+      - arn                    = "arn:aws:ec2:ap-south-1::security-group-rule/sgr-2de9e08d7b2e6e530" -> null
+      - cidr_ipv4              = "0.0.0.0/0" -> null
+      - description            = "HTTP from anywhere (redirected to HTTPS)" -> null
+      - from_port              = 80 -> null
+      - id                     = "sgr-2de9e08d7b2e6e530" -> null
+      - ip_protocol            = "tcp" -> null
+      - region                 = "ap-south-1" -> null
+      - security_group_id      = "sg-562af06f6fa0ba874" -> null
+      - security_group_rule_id = "sgr-2de9e08d7b2e6e530" -> null
+      - tags_all               = {
+          - "Environment" = "dev"
+          - "ManagedBy"   = "Terraform"
+          - "Project"     = "incidentdesk"
+          - "Session"     = "21"
+        } -> null
+      - to_port                = 80 -> null
+    }
+
+  # aws_vpc_security_group_ingress_rule.web_https will be destroyed
+  - resource "aws_vpc_security_group_ingress_rule" "web_https" {
+      - arn                    = "arn:aws:ec2:ap-south-1::security-group-rule/sgr-362a2c0854bb0491c" -> null
+      - cidr_ipv4              = "0.0.0.0/0" -> null
+      - description            = "HTTPS from anywhere" -> null
+      - from_port              = 443 -> null
+      - id                     = "sgr-362a2c0854bb0491c" -> null
+      - ip_protocol            = "tcp" -> null
+      - region                 = "ap-south-1" -> null
+      - security_group_id      = "sg-562af06f6fa0ba874" -> null
+      - security_group_rule_id = "sgr-362a2c0854bb0491c" -> null
+      - tags_all               = {
+          - "Environment" = "dev"
+          - "ManagedBy"   = "Terraform"
+          - "Project"     = "incidentdesk"
+          - "Session"     = "21"
+        } -> null
+      - to_port                = 443 -> null
+    }
+
+  # random_id.suffix will be destroyed
+  - resource "random_id" "suffix" {
+      - b64_std     = "hEUG" -> null
+      - b64_url     = "hEUG" -> null
+      - byte_length = 3 -> null
+      - dec         = "8668422" -> null
+      - hex         = "844506" -> null
+      - id          = "hEUG" -> null
+    }
+
+Plan: 0 to add, 0 to change, 30 to destroy.
+
+Changes to Outputs:
+  - backup_bucket      = "incidentdesk-dev-db-backups-844506" -> null
+  - backup_role_arn    = "arn:aws:iam::000000000000:role/incidentdesk-dev-db-backup" -> null
+  - nat_gateway_id     = "nat-eecf3a38d872585ad" -> null
+  - private_subnet_ids = [
+      - "subnet-80187af1512f5288f",
+      - "subnet-1a6ab82cf3a0fe21e",
+    ] -> null
+  - public_subnet_ids  = [
+      - "subnet-7eb9ce9cf64092739",
+      - "subnet-233a0419ed3eb4731",
+    ] -> null
+  - security_group_ids = {
+      - db  = "sg-6e48f356e28fe90c4"
+      - web = "sg-562af06f6fa0ba874"
+    } -> null
+  - tf_lock_table      = "incidentdesk-dev-tf-lock" -> null
+  - vpc_id             = "vpc-aeedc81235fdbbdbc" -> null
+aws_dynamodb_table.tf_lock: Destroying... [id=incidentdesk-dev-tf-lock]
+aws_vpc_security_group_egress_rule.web_to_vpc: Destroying... [id=sgr-fb53247aaa968b2fc]
+aws_route_table_association.public[1]: Destroying... [id=rtbassoc-25da00dcc4120c413]
+aws_s3_bucket_public_access_block.backups: Destroying... [id=incidentdesk-dev-db-backups-844506]
+aws_vpc_security_group_ingress_rule.db_from_web: Destroying... [id=sgr-5e943a78307cc3b56]
+aws_s3_bucket_lifecycle_configuration.backups: Destroying... [id=incidentdesk-dev-db-backups-844506]
+aws_s3_bucket_server_side_encryption_configuration.backups: Destroying... [id=incidentdesk-dev-db-backups-844506]
+aws_vpc_security_group_ingress_rule.web_https: Destroying... [id=sgr-362a2c0854bb0491c]
+aws_route_table_association.private[1]: Destroying... [id=rtbassoc-10b0d6afef653f86b]
+aws_vpc_security_group_ingress_rule.web_http: Destroying... [id=sgr-2de9e08d7b2e6e530]
+aws_s3_bucket_server_side_encryption_configuration.backups: Destruction complete after 0s
+aws_route_table_association.private[0]: Destroying... [id=rtbassoc-97ea76587133cd709]
+aws_vpc_security_group_ingress_rule.web_http: Destruction complete after 0s
+aws_route_table_association.public[0]: Destroying... [id=rtbassoc-21f4b8992a8c420d1]
+aws_s3_bucket_public_access_block.backups: Destruction complete after 0s
+aws_iam_role_policy_attachment.backup: Destroying... [id=incidentdesk-dev-db-backup/arn:aws:iam::000000000000:policy/incidentdesk-dev-db-backup]
+aws_vpc_security_group_ingress_rule.db_from_web: Destruction complete after 0s
+aws_vpc_security_group_ingress_rule.web_https: Destruction complete after 0s
+aws_vpc_security_group_egress_rule.web_to_vpc: Destruction complete after 0s
+aws_security_group.db: Destroying... [id=sg-6e48f356e28fe90c4]
+aws_iam_role_policy_attachment.backup: Destruction complete after 0s
+aws_s3_bucket_lifecycle_configuration.backups: Destruction complete after 0s
+aws_security_group.web: Destroying... [id=sg-562af06f6fa0ba874]
+aws_route_table_association.public[1]: Destruction complete after 0s
+aws_iam_policy.backup: Destroying... [id=arn:aws:iam::000000000000:policy/incidentdesk-dev-db-backup]
+aws_s3_bucket_versioning.backups: Destroying... [id=incidentdesk-dev-db-backups-844506]
+aws_iam_role.backup: Destroying... [id=incidentdesk-dev-db-backup]
+aws_route_table_association.private[1]: Destruction complete after 0s
+aws_route_table_association.public[0]: Destruction complete after 0s
+aws_route_table_association.private[0]: Destruction complete after 0s
+aws_s3_bucket_versioning.backups: Destruction complete after 0s
+aws_iam_policy.backup: Destruction complete after 0s
+aws_subnet.private[0]: Destroying... [id=subnet-80187af1512f5288f]
+aws_route_table.private: Destroying... [id=rtb-377f8f7d5a4679349]
+aws_route_table.public: Destroying... [id=rtb-a47ccbc6bbc105ca6]
+aws_subnet.private[1]: Destroying... [id=subnet-1a6ab82cf3a0fe21e]
+aws_s3_bucket.backups: Destroying... [id=incidentdesk-dev-db-backups-844506]
+aws_security_group.db: Destruction complete after 0s
+aws_security_group.web: Destruction complete after 0s
+aws_iam_role.backup: Destruction complete after 0s
+aws_subnet.private[1]: Destruction complete after 0s
+aws_s3_bucket.backups: Destruction complete after 0s
+aws_subnet.private[0]: Destruction complete after 0s
+random_id.suffix: Destroying... [id=hEUG]
+random_id.suffix: Destruction complete after 0s
+aws_dynamodb_table.tf_lock: Destruction complete after 0s
+aws_route_table.private: Destruction complete after 0s
+aws_route_table.public: Destruction complete after 0s
+aws_nat_gateway.main: Destroying... [id=nat-eecf3a38d872585ad]
+aws_nat_gateway.main: Still destroying... [id=nat-eecf3a38d872585ad, 00m10s elapsed]
+aws_nat_gateway.main: Still destroying... [id=nat-eecf3a38d872585ad, 00m20s elapsed]
+aws_nat_gateway.main: Destruction complete after 20s
+aws_subnet.public[0]: Destroying... [id=subnet-7eb9ce9cf64092739]
+aws_eip.nat: Destroying... [id=eipalloc-2bbb50595930d7802]
+aws_subnet.public[1]: Destroying... [id=subnet-233a0419ed3eb4731]
+aws_subnet.public[0]: Destruction complete after 0s
+aws_eip.nat: Destruction complete after 0s
+aws_subnet.public[1]: Destruction complete after 0s
+aws_internet_gateway.main: Destroying... [id=igw-6176c2c252b0c5082]
+aws_internet_gateway.main: Destruction complete after 0s
+aws_vpc.main: Destroying... [id=vpc-aeedc81235fdbbdbc]
+aws_vpc.main: Destruction complete after 0s
+
+Destroy complete! Resources: 30 destroyed.
+
+$ terraform state list   (empty = nothing left)
+(end of state)

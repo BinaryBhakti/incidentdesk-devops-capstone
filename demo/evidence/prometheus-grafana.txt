@@ -1,0 +1,23 @@
+$ PromQL: up{namespace="incidentdesk"}   (1 = target UP)
+incidentdesk-backend-78f9c7f5cd-wqhn5         backend                                       value = 1
+incidentdesk-backend-78f9c7f5cd-p4k6l         backend                                       value = 1
+incidentdesk-backend-78f9c7f5cd-gdjdx         backend                                       value = 1
+incidentdesk-backend-78f9c7f5cd-cllmv         backend                                       value = 1
+incidentdesk-backend-78f9c7f5cd-vszqc         backend                                       value = 1
+
+$ PromQL: sum by (handler, status) (rate(http_requests_total{namespace="incidentdesk"}[2m]))   (req/s)
+/api/incidents                                2xx                                           value = 67.94934333333333
+/api/incidents/stats                          2xx                                           value = 61.63577361111111
+/api/incidents/{incident_id}                  4xx                                           value = 61.730422499999996
+
+$ PromQL: kube_horizontalpodautoscaler_status_current_replicas
+incidentdesk-backend                          value = 5
+
+$ curl -s http://grafana.local/api/health
+{
+  "database": "ok",
+  "version": "13.2.4",
+  "commit": "0e79aef9d91abf3bdadae9af15763029072fb45b"
+}
+$ curl -s 'http://grafana.local/api/search?query=IncidentDesk'
+[{"id":3464136505839616,"uid":"fg1f7s0emivwgf","orgId":1,"title":"IncidentDesk","uri":"db/incidentdesk","url":"/dashboards/f/fg1f7s0emivwgf/incidentdesk","slug":"","type":"dash-folder","tags":[],"isStarred":false,"sortMeta":0,"isDeleted":false},{"id":3464136550670336,"uid":"incidentdesk","orgId":1,"title":"IncidentDesk — golden signals","uri":"db/incidentdesk-e28094-golden-signals","url":"/d/incidentdesk/incidentdesk-e28094-golden-signals","slug":"","type":"dash-db","tags":["incidentdesk","session21"],"isStarred":false,"folderId":3464136505839616,"folderUid":"fg1f7s0emivwgf","folderTitle":"IncidentDesk","folderUrl":"/dashboards/f/fg1f7s0emivwgf/incidentdesk","sortMeta":0,"isDeleted":false}]

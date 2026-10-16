@@ -1,0 +1,19 @@
+$ curl -s -o /dev/null -w '%{http_code}' http://incidentdesk.local/
+HTTP 200
+  /api not ready yet: HTTP 503 <html>
+<head><title>503 Service Temporarily Unavailable</title></head>
+<body>
+<center><h1>503 Service Temporarily Unavailable</h1></center>
+<hr><center>nginx</center>
+</body>
+</html>
+$ curl -s http://incidentdesk.local/api/incidents/stats
+{"total":0,"open":0,"investigating":0,"resolved":0,"sev1_open":0}
+$ curl -X POST http://incidentdesk.local/api/incidents  (Checkout API returning 502s)
+{"title":"Checkout API returning 502s","description":"","service":"payments","severity":"SEV1","status":"OPEN","assignee":"unassigned","id":1,"created_at":"2026-10-16T17:34:32.346362Z","resolved_at":null}
+$ curl -X POST http://incidentdesk.local/api/incidents  (Search latency above SLO)
+{"title":"Search latency above SLO","description":"","service":"search","severity":"SEV2","status":"OPEN","assignee":"unassigned","id":2,"created_at":"2026-10-16T17:34:32.361213Z","resolved_at":null}
+$ curl -X POST http://incidentdesk.local/api/incidents  (Nightly backup job slow)
+{"title":"Nightly backup job slow","description":"","service":"platform","severity":"SEV3","status":"OPEN","assignee":"unassigned","id":3,"created_at":"2026-10-16T17:34:32.373543Z","resolved_at":null}
+$ curl -s http://incidentdesk.local/api/incidents | head -c 400
+[{"title":"Nightly backup job slow","description":"","service":"platform","severity":"SEV3","status":"OPEN","assignee":"unassigned","id":3,"created_at":"2026-10-16T17:34:32.373543Z","resolved_at":null},{"title":"Search latency above SLO","description":"","service":"search","severity":"SEV2","status":"OPEN","assignee":"unassigned","id":2,"created_at":"2026-10-16T17:34:32.361213Z","resolved_at":null

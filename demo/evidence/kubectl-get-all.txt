@@ -1,0 +1,61 @@
+$ kubectl get nodes -o wide
+NAME                     STATUS   ROLES           AGE     VERSION   INTERNAL-IP   EXTERNAL-IP   OS-IMAGE                       KERNEL-VERSION              CONTAINER-RUNTIME
+capstone-control-plane   Ready    control-plane   4m17s   v1.37.0   172.18.0.3    <none>        Debian GNU/Linux 13 (trixie)   6.17.0-1022-azure (amd64)   containerd://2.3.4
+capstone-worker          Ready    <none>          4m3s    v1.37.0   172.18.0.2    <none>        Debian GNU/Linux 13 (trixie)   6.17.0-1022-azure (amd64)   containerd://2.3.4
+
+$ kubectl get pods -n incidentdesk -o wide
+NAME                                     READY   STATUS    RESTARTS   AGE     IP            NODE              NOMINATED NODE   READINESS GATES
+incidentdesk-backend-78f9c7f5cd-cllmv    1/1     Running   0          114s    10.244.1.16   capstone-worker   <none>           <none>
+incidentdesk-backend-78f9c7f5cd-gdjdx    1/1     Running   0          114s    10.244.1.14   capstone-worker   <none>           <none>
+incidentdesk-backend-78f9c7f5cd-p4k6l    1/1     Running   0          3m10s   10.244.1.11   capstone-worker   <none>           <none>
+incidentdesk-backend-78f9c7f5cd-vszqc    1/1     Running   0          114s    10.244.1.15   capstone-worker   <none>           <none>
+incidentdesk-backend-78f9c7f5cd-wqhn5    1/1     Running   0          3m10s   10.244.1.9    capstone-worker   <none>           <none>
+incidentdesk-frontend-84fb896bf8-9d7j5   1/1     Running   0          3m10s   10.244.1.8    capstone-worker   <none>           <none>
+incidentdesk-frontend-84fb896bf8-qcmf7   1/1     Running   0          3m10s   10.244.1.10   capstone-worker   <none>           <none>
+incidentdesk-postgres-0                  1/1     Running   0          3m10s   10.244.1.13   capstone-worker   <none>           <none>
+
+$ kubectl get svc -n incidentdesk
+NAME                    TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE
+incidentdesk-backend    ClusterIP   10.96.178.91    <none>        8000/TCP   3m10s
+incidentdesk-frontend   ClusterIP   10.96.131.192   <none>        80/TCP     3m10s
+incidentdesk-postgres   ClusterIP   None            <none>        5432/TCP   3m10s
+
+$ kubectl get ingress -n incidentdesk
+NAME           CLASS   HOSTS                ADDRESS     PORTS   AGE
+incidentdesk   nginx   incidentdesk.local   localhost   80      3m10s
+
+$ kubectl get hpa -n incidentdesk
+NAME                   REFERENCE                         TARGETS         MINPODS   MAXPODS   REPLICAS   AGE
+incidentdesk-backend   Deployment/incidentdesk-backend   cpu: 316%/60%   2         5         5          3m10s
+
+$ kubectl get deploy,statefulset,pvc -n incidentdesk
+NAME                                    READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/incidentdesk-backend    5/5     5            5           3m10s
+deployment.apps/incidentdesk-frontend   2/2     2            2           3m10s
+
+NAME                                     READY   AGE
+statefulset.apps/incidentdesk-postgres   1/1     3m10s
+
+NAME                                                 STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE
+persistentvolumeclaim/data-incidentdesk-postgres-0   Bound    pvc-755665b1-e7e8-4f9d-839d-ac093ac0b627   1Gi        RWO            standard       <unset>                 3m10s
+
+$ kubectl top pods -n incidentdesk
+NAME                                     CPU(cores)   MEMORY(bytes)   
+incidentdesk-backend-78f9c7f5cd-cllmv    329m         83Mi            
+incidentdesk-backend-78f9c7f5cd-gdjdx    324m         82Mi            
+incidentdesk-backend-78f9c7f5cd-p4k6l    305m         84Mi            
+incidentdesk-backend-78f9c7f5cd-vszqc    321m         81Mi            
+incidentdesk-backend-78f9c7f5cd-wqhn5    323m         82Mi            
+incidentdesk-frontend-84fb896bf8-9d7j5   1m           3Mi             
+incidentdesk-frontend-84fb896bf8-qcmf7   1m           3Mi             
+incidentdesk-postgres-0                  174m         75Mi            
+
+$ helm list -n incidentdesk
+NAME        	NAMESPACE   	REVISION	UPDATED                                	STATUS  	CHART             	APP VERSION
+incidentdesk	incidentdesk	1       	2026-10-16 17:33:52.552460936 +0000 UTC	deployed	incidentdesk-1.0.0	1.0.0      
+
+$ kubectl get pods -n monitoring
+NAME                                             READY   STATUS    RESTARTS   AGE
+grafana-6b464db599-gc4zv                         1/1     Running   0          3m10s
+prometheus-kube-state-metrics-7f67587b9d-z8h75   1/1     Running   0          3m11s
+prometheus-server-8894dc499-6wksk                2/2     Running   0          3m11s

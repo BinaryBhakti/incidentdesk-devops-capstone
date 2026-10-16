@@ -1,0 +1,2 @@
+pushed `ghcr.io/binarybhakti/incidentdesk-capstone-backend:076539e7e734b0f8597a5449bf384b6a812b8bb3`
+pushed `ghcr.io/binarybhakti/incidentdesk-capstone-frontend:076539e7e734b0f8597a5449bf384b6a812b8bb3`

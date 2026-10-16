@@ -7,9 +7,10 @@
 | [`screenshots/`](screenshots) | UI screenshots taken by headless Chromium inside the CI deploy job, plus terminal renders of the CI logs |
 | [`evidence/`](evidence) | Raw logs downloaded from the GitHub Actions run artifacts (`evidence-test`, `evidence-build`, `evidence-terraform`, `evidence-deploy`) |
 
-**Source run:** RUN_LINK
+**Source run:** [run #5](https://github.com/BinaryBhakti/incidentdesk-devops-capstone/actions/runs/38940190952): all 5 jobs green
 
 Terminal screenshots (`pytest.png`, `trivy-scan.png`, `terraform-plan.png`, `kubectl-get-all.png`)
 are renders of the logs in `evidence/`. Those commands ran non-interactively on a GitHub
-runner, so there was no terminal window to photograph. UI screenshots (`app-via-ingress.png`,
-`prometheus-targets.png`, `grafana-dashboard.png`) are real browser captures from the same run.
+runner, so there was no terminal window to photograph. `app-via-ingress.png` is a real headless-Chromium capture from the same run. `github-actions-run.png` and
+`commit-history.png` are headless-Chrome captures of the public GitHub pages. The Prometheus and Grafana UIs
+did not render in CI; see Known issues in the root README.

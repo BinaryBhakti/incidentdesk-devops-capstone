@@ -1,0 +1,8 @@
+$ curl -s http://<backend>:8000/metrics | grep -E '^(http_requests_total|incidents_created_total)' | head -15
+incidents_created_total{severity="SEV1"} 1.0
+incidents_created_total{severity="SEV3"} 1.0
+incidents_created_total{severity="SEV4"} 305.0
+http_requests_total{handler="/api/incidents",method="POST",status="2xx"} 307.0
+http_requests_total{handler="/api/incidents",method="GET",status="2xx"} 3044.0
+http_requests_total{handler="/api/incidents/stats",method="GET",status="2xx"} 3081.0
+http_requests_total{handler="/api/incidents/{incident_id}",method="GET",status="4xx"} 3040.0

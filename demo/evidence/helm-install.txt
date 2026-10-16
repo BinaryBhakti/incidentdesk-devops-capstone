@@ -1,0 +1,18 @@
+$ kubectl apply -f k8s/namespace.yaml
+namespace/incidentdesk created
+
+$ helm upgrade --install incidentdesk ./helm/incidentdesk -n incidentdesk -f values-ci.yaml --set *.image.tag=076539e7e734b0f8597a5449bf384b6a812b8bb3 --wait
+Release "incidentdesk" does not exist. Installing it now.
+NAME: incidentdesk
+LAST DEPLOYED: Fri Oct 16 17:33:52 2026
+NAMESPACE: incidentdesk
+STATUS: deployed
+REVISION: 1
+DESCRIPTION: Install complete
+TEST SUITE: None
+NOTES:
+IncidentDesk 1.0.0 — release incidentdesk (revision 1) in incidentdesk
+  backend:  ghcr.io/binarybhakti/incidentdesk-capstone-backend:076539e7e734b0f8597a5449bf384b6a812b8bb3
+  frontend: ghcr.io/binarybhakti/incidentdesk-capstone-frontend:076539e7e734b0f8597a5449bf384b6a812b8bb3
+  URL:      http://incidentdesk.local/
+Check:  kubectl -n incidentdesk get pods,svc,ingress,hpa
