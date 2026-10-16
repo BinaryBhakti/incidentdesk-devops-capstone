@@ -16,7 +16,7 @@ spec:
       securityContext: { runAsNonRoot: true, runAsUser: 101, seccompProfile: { type: RuntimeDefault } }
       containers:
         - name: frontend
-          image: ghcr.io/binarybhakti/incidentdesk-frontend:latest
+          image: ghcr.io/binarybhakti/incidentdesk-capstone-frontend:latest
           env:
             # FQDN: nginx's runtime resolver does not apply the pod's DNS search domains
             - { name: BACKEND_URL, value: "http://incidentdesk-backend.incidentdesk.svc.cluster.local:8000" }

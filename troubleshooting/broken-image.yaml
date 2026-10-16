@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
         - name: backend
-          image: ghcr.io/binarybhakti/incidentdesk-backend:this-tag-does-not-exist
+          image: ghcr.io/binarybhakti/incidentdesk-capstone-backend:this-tag-does-not-exist
           ports: [{ containerPort: 8000 }]
           resources:
             requests: { cpu: 10m, memory: 32Mi }

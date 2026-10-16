@@ -25,7 +25,7 @@ spec:
           envFrom: [{ configMapRef: { name: incidentdesk-config } }]
           securityContext: { runAsUser: 70, allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: { drop: [ALL] } }
         - name: migrate              # Alembic owns the schema; an advisory lock serialises replicas
-          image: ghcr.io/binarybhakti/incidentdesk-backend:latest
+          image: ghcr.io/binarybhakti/incidentdesk-capstone-backend:latest
           command: ["alembic", "upgrade", "head"]
           envFrom: [{ configMapRef: { name: incidentdesk-config } }]
           env:
@@ -36,7 +36,7 @@ spec:
           securityContext: { allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: { drop: [ALL] } }
       containers:
         - name: backend
-          image: ghcr.io/binarybhakti/incidentdesk-backend:latest
+          image: ghcr.io/binarybhakti/incidentdesk-capstone-backend:latest
           command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers"]
           ports: [{ name: http, containerPort: 8000 }]
           envFrom: [{ configMapRef: { name: incidentdesk-config } }]

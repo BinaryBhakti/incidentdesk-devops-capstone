@@ -2,7 +2,7 @@
 
 backend:
   image:
-    repository: ghcr.io/binarybhakti/incidentdesk-backend
+    repository: ghcr.io/binarybhakti/incidentdesk-capstone-backend
     tag: "latest"            # CI pins this to the commit SHA (see gitops/ and the workflow)
     pullPolicy: IfNotPresent
   replicas: 2
@@ -18,7 +18,7 @@ backend:
 
 frontend:
   image:
-    repository: ghcr.io/binarybhakti/incidentdesk-frontend
+    repository: ghcr.io/binarybhakti/incidentdesk-capstone-frontend
     tag: "latest"
     pullPolicy: IfNotPresent
   replicas: 2

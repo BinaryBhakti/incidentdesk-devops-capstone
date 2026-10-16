@@ -24,8 +24,8 @@ permissions:
   contents: read
 
 env:
-  BACKEND_IMAGE: ghcr.io/binarybhakti/incidentdesk-backend
-  FRONTEND_IMAGE: ghcr.io/binarybhakti/incidentdesk-frontend
+  BACKEND_IMAGE: ghcr.io/binarybhakti/incidentdesk-capstone-backend
+  FRONTEND_IMAGE: ghcr.io/binarybhakti/incidentdesk-capstone-frontend
   TRIVY_IMAGE: aquasec/trivy:0.75.0
   GITLEAKS_IMAGE: ghcr.io/gitleaks/gitleaks:v8.30.1
 
