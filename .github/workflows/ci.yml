@@ -1,0 +1,446 @@
+# IncidentDesk — CI/CD pipeline
+#
+#   test ─► build + Trivy scan ─► push to GHCR (:<commit sha>) ─► deploy (kind + Helm + Ingress
+#                                                                   + HPA + Prometheus + Grafana + Argo CD)
+#   terraform (VPC + EKS plan, apply/destroy on LocalStack) runs alongside
+#
+# Rule used throughout: no ${{ }} expression is pasted into a `run:` script. Values reach the
+# shell through `env:`, so an attacker-influenced string can never change the script's syntax.
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: ["**.md", "demo/**", "architecture.svg"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  BACKEND_IMAGE: ghcr.io/binarybhakti/incidentdesk-backend
+  FRONTEND_IMAGE: ghcr.io/binarybhakti/incidentdesk-frontend
+  TRIVY_IMAGE: aquasec/trivy:0.75.0
+  GITLEAKS_IMAGE: ghcr.io/gitleaks/gitleaks:v8.30.1
+
+jobs:
+  # ================================================================== 1. TEST
+  test:
+    name: Test (pytest + frontend build)
+    runs-on: ubuntu-latest
+    services:
+      postgres:                       # a real, throwaway test database — never the app's database
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: incidentdesk_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U test -d incidentdesk_test"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements-dev.txt
+      - name: Install backend dependencies
+        working-directory: backend
+        run: pip install -r requirements-dev.txt
+      - name: Lint (ruff)
+        working-directory: backend
+        run: |
+          ruff check --output-format=github .
+          ruff format --check .
+      - name: pytest (fails the pipeline on any failing test)
+        working-directory: backend
+        env:
+          TEST_DATABASE_URL: postgresql+psycopg://test:test@localhost:5432/incidentdesk_test
+        run: |
+          mkdir -p reports
+          set -o pipefail
+          pytest -v --junitxml=reports/junit.xml --cov=app --cov-report=term-missing \
+                 --cov-fail-under=85 | tee reports/pytest.txt
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Build frontend (React + Vite)
+        working-directory: frontend
+        run: |
+          npm ci --no-audit --no-fund
+          set -o pipefail
+          npm run build | tee ../backend/reports/frontend-build.txt
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: evidence-test
+          path: backend/reports/
+          retention-days: 30
+
+  secret-scan:
+    name: Secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0                # every commit: a deleted secret is still a leaked secret
+      - name: gitleaks
+        run: |
+          docker run --rm -v "$PWD:/repo" "$GITLEAKS_IMAGE" git /repo \
+            --config /repo/security/gitleaks.toml --redact --verbose --exit-code 1
+
+  # ================================================================== 2. BUILD + SCAN + PUSH
+  build-scan-push:
+    name: Docker build, Trivy scan, push to GHCR
+    needs: [test, secret-scan]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build both images, tagged with the commit SHA
+        env:
+          SHA: ${{ github.sha }}
+        run: |
+          mkdir -p evidence
+          {
+            echo "\$ docker build -t $BACKEND_IMAGE:$SHA ./backend"
+            docker build --build-arg GIT_SHA="$SHA" -t "$BACKEND_IMAGE:$SHA" ./backend 2>&1 | tail -5
+            echo "\$ docker build -t $FRONTEND_IMAGE:$SHA ./frontend"
+            docker build --build-arg GIT_SHA="$SHA" -t "$FRONTEND_IMAGE:$SHA" ./frontend 2>&1 | tail -5
+            echo; echo "\$ docker images | grep incidentdesk"
+            docker images | grep incidentdesk
+            echo; echo "\$ docker inspect --format '{{.Config.User}}' (non-root check)"
+            echo "backend : $(docker inspect --format '{{.Config.User}}' "$BACKEND_IMAGE:$SHA")"
+            echo "frontend: $(docker inspect --format '{{.Config.User}}' "$FRONTEND_IMAGE:$SHA")"
+          } | tee evidence/docker-build.txt
+      - name: Trivy — fail on HIGH/CRITICAL vulnerabilities (both images)
+        env:
+          SHA: ${{ github.sha }}
+        run: |
+          set -o pipefail
+          for img in "$BACKEND_IMAGE:$SHA" "$FRONTEND_IMAGE:$SHA"; do
+            echo "\$ trivy image --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 $img"
+            docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v "$PWD:/src" -w /src \
+              "$TRIVY_IMAGE" image --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 \
+              --ignorefile security/.trivyignore --format table "$img"
+          done 2>&1 | tee evidence/trivy-scan.txt
+      - name: Save images for the deploy job
+        env:
+          SHA: ${{ github.sha }}
+        run: docker save "$BACKEND_IMAGE:$SHA" "$FRONTEND_IMAGE:$SHA" -o "$RUNNER_TEMP/images.tar"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: images
+          path: ${{ runner.temp }}/images.tar
+          retention-days: 2
+      - uses: docker/login-action@v4
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Push the scanned images to GHCR (tag = commit SHA, never "latest")
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          SHA: ${{ github.sha }}
+        run: |
+          for img in "$BACKEND_IMAGE:$SHA" "$FRONTEND_IMAGE:$SHA"; do
+            docker push "$img"
+            echo "pushed \`$img\`" | tee -a evidence/ghcr-push.txt >> "$GITHUB_STEP_SUMMARY"
+          done
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: evidence-build
+          path: evidence/
+          retention-days: 30
+
+  # ================================================================== 3. TERRAFORM
+  terraform:
+    name: Terraform (VPC + EKS) on LocalStack
+    runs-on: ubuntu-latest
+    services:
+      localstack:
+        image: localstack/localstack:4.14.0
+        env:
+          SERVICES: s3,ec2,iam,sts,dynamodb
+        ports: ["4566:4566"]
+    defaults:
+      run:
+        working-directory: terraform
+    env:
+      TF_IN_AUTOMATION: "1"
+      TF_VAR_use_localstack: "true"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+      - name: Wait for LocalStack
+        run: |
+          for _ in $(seq 1 60); do
+            curl -fs localhost:4566/_localstack/health | grep -q '"ec2": "\(available\|running\)"' && break
+            sleep 2
+          done
+          curl -s localhost:4566/_localstack/health
+      - name: fmt, init, validate
+        run: |
+          mkdir -p ../evidence
+          set -o pipefail
+          {
+            echo "\$ terraform version"; terraform version
+            echo; echo "\$ terraform fmt -check -recursive"; terraform fmt -check -recursive && echo "formatted"
+            echo; echo "\$ terraform init"; terraform init -no-color -input=false
+            echo; echo "\$ terraform validate"; terraform validate -no-color
+          } 2>&1 | tee ../evidence/terraform-init-validate.txt
+      - name: plan — full AWS design (VPC + EKS cluster + node group)
+        run: |
+          set -o pipefail
+          echo "\$ terraform plan -var enable_eks=true" | tee ../evidence/terraform-plan.txt
+          terraform plan -no-color -input=false -var enable_eks=true 2>&1 | tee -a ../evidence/terraform-plan.txt
+      - name: apply — everything LocalStack community can emulate (EKS needs LocalStack Pro)
+        run: |
+          set -o pipefail
+          {
+            echo "\$ terraform apply -auto-approve -var enable_eks=false"
+            terraform apply -no-color -input=false -auto-approve -var enable_eks=false
+            echo; echo "\$ terraform state list"; terraform state list
+            echo; echo "\$ terraform output"; terraform output -no-color
+            echo; echo "\$ aws ec2 describe-vpcs / describe-subnets (LocalStack)"
+            docker run --rm --network host -e AWS_ACCESS_KEY_ID=test -e AWS_SECRET_ACCESS_KEY=test \
+              -e AWS_DEFAULT_REGION=ap-south-1 amazon/aws-cli:2.27.0 --endpoint-url http://localhost:4566 \
+              ec2 describe-subnets --query 'Subnets[].[Tags[?Key==`Name`]|[0].Value,CidrBlock,AvailabilityZone]' --output table
+          } 2>&1 | tee ../evidence/terraform-apply.txt
+      - name: destroy — tear everything down
+        if: always()
+        run: |
+          set -o pipefail
+          {
+            echo "\$ terraform destroy -auto-approve -var enable_eks=false"
+            terraform destroy -no-color -input=false -auto-approve -var enable_eks=false
+            echo; echo "\$ terraform state list   (empty = nothing left)"; terraform state list; echo "(end of state)"
+          } 2>&1 | tee ../evidence/terraform-destroy.txt
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: evidence-terraform
+          path: evidence/
+          retention-days: 30
+
+  # ================================================================== 4. DEPLOY
+  deploy:
+    name: Deploy — kind + Helm + Ingress + HPA + Prometheus/Grafana + Argo CD
+    needs: build-scan-push
+    runs-on: ubuntu-latest
+    env:
+      NS: incidentdesk
+      E: ${{ github.workspace }}/evidence
+      SHA: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: helm/kind-action@v1.15.1
+        with:
+          cluster_name: capstone
+          config: .github/kind-config.yaml
+      - uses: azure/setup-helm@v5
+      - uses: actions/download-artifact@v8
+        with:
+          name: images
+          path: ${{ runner.temp }}
+      - name: Load the scanned images into the cluster
+        run: |
+          mkdir -p "$E"
+          docker load -i "$RUNNER_TEMP/images.tar"
+          kind load docker-image --name capstone "$BACKEND_IMAGE:$SHA" "$FRONTEND_IMAGE:$SHA"
+          echo "127.0.0.1 incidentdesk.local" | sudo tee -a /etc/hosts
+      - name: Platform — NGINX Ingress controller, metrics-server, Prometheus, Grafana
+        run: |
+          kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.12.1/deploy/static/provider/kind/deploy.yaml
+          helm repo add metrics-server https://kubernetes-sigs.github.io/metrics-server/
+          helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+          helm repo add grafana-community https://grafana-community.github.io/helm-charts
+          helm repo update
+          helm upgrade --install metrics-server metrics-server/metrics-server -n kube-system \
+            --set 'args={--kubelet-insecure-tls}'
+          helm upgrade --install prometheus prometheus-community/prometheus -n monitoring --create-namespace \
+            -f monitoring/prometheus-values.yaml
+          helm upgrade --install grafana grafana-community/grafana -n monitoring -f monitoring/grafana-values.yaml
+          kubectl -n ingress-nginx wait --for=condition=Ready pod -l app.kubernetes.io/component=controller --timeout=180s
+      - name: kubectl apply -f k8s/namespace.yaml ; helm upgrade --install
+        run: |
+          set -o pipefail
+          {
+            echo "\$ kubectl apply -f k8s/namespace.yaml"; kubectl apply -f k8s/namespace.yaml
+            echo; echo "\$ helm upgrade --install incidentdesk ./helm/incidentdesk -n $NS -f values-ci.yaml --set *.image.tag=$SHA --wait"
+            helm upgrade --install incidentdesk ./helm/incidentdesk -n "$NS" \
+              -f helm/incidentdesk/values-ci.yaml \
+              --set backend.image.tag="$SHA" --set frontend.image.tag="$SHA" \
+              --set postgres.password="$(openssl rand -hex 16)" \
+              --wait --timeout 8m
+          } 2>&1 | tee "$E/helm-install.txt"
+      - name: Smoke test through the Ingress (/ -> frontend, /api -> backend)
+        run: |
+          set -o pipefail
+          {
+            echo "\$ curl -s -o /dev/null -w '%{http_code}' http://incidentdesk.local/"
+            curl -s -o /dev/null -w 'HTTP %{http_code}\n' http://incidentdesk.local/
+            echo "\$ curl -s http://incidentdesk.local/api/incidents/stats"
+            curl -fs http://incidentdesk.local/api/incidents/stats; echo
+            for t in "Checkout API returning 502s|payments|SEV1" "Search latency above SLO|search|SEV2" "Nightly backup job slow|platform|SEV3"; do
+              IFS='|' read -r title svc sev <<<"$t"
+              echo "\$ curl -X POST http://incidentdesk.local/api/incidents  ($title)"
+              curl -fs -X POST http://incidentdesk.local/api/incidents -H 'Content-Type: application/json' \
+                -d "{\"title\":\"$title\",\"service\":\"$svc\",\"severity\":\"$sev\"}"; echo
+            done
+            echo "\$ curl -s http://incidentdesk.local/api/incidents | head -c 400"
+            curl -fs http://incidentdesk.local/api/incidents | head -c 400; echo
+          } 2>&1 | tee "$E/ingress-smoke-test.txt"
+      - name: Load test (feeds the HPA and the Grafana panels)
+        run: |
+          scripts/load-test.sh http://incidentdesk.local 150 2>&1 | tee "$E/load-test.txt" &
+          sleep 60
+          kubectl -n "$NS" get hpa | tee "$E/hpa-under-load.txt"
+          wait
+      - name: Cluster state — pods, services, ingress, HPA, helm list
+        run: |
+          {
+            echo "\$ kubectl get nodes -o wide"; kubectl get nodes -o wide
+            echo; echo "\$ kubectl get pods -n $NS -o wide"; kubectl get pods -n "$NS" -o wide
+            echo; echo "\$ kubectl get svc -n $NS"; kubectl get svc -n "$NS"
+            echo; echo "\$ kubectl get ingress -n $NS"; kubectl get ingress -n "$NS"
+            echo; echo "\$ kubectl get hpa -n $NS"; kubectl get hpa -n "$NS"
+            echo; echo "\$ kubectl get deploy,statefulset,pvc -n $NS"; kubectl get deploy,statefulset,pvc -n "$NS"
+            echo; echo "\$ kubectl top pods -n $NS"; kubectl top pods -n "$NS" || true
+            echo; echo "\$ helm list -n $NS"; helm list -n "$NS"
+            echo; echo "\$ kubectl get pods -n monitoring"; kubectl get pods -n monitoring
+          } 2>&1 | tee "$E/kubectl-get-all.txt"
+      - name: Observability — /metrics, Prometheus targets UP, Grafana health
+        run: |
+          kubectl -n monitoring rollout status deploy/prometheus-server --timeout=180s
+          kubectl -n monitoring rollout status deploy/grafana --timeout=180s
+          kubectl -n monitoring port-forward svc/prometheus-server 9090:80 >/dev/null 2>&1 &
+          kubectl -n monitoring port-forward svc/grafana 3000:80 >/dev/null 2>&1 &
+          kubectl -n "$NS" port-forward svc/incidentdesk-backend 8000:8000 >/dev/null 2>&1 &
+          sleep 5
+          {
+            echo "\$ curl -s http://<backend>:8000/metrics | grep -E '^(http_requests_total|incidents_created_total)' | head -15"
+            curl -s localhost:8000/metrics | grep -E '^(http_requests_total|incidents_created_total)' | head -15
+          } 2>&1 | tee "$E/backend-metrics.txt"
+          for _ in $(seq 1 30); do
+            n=$(curl -s 'localhost:9090/api/v1/query' --data-urlencode 'query=sum(up{namespace="incidentdesk",app_kubernetes_io_component="backend"})' \
+                | python3 -c 'import json,sys; r=json.load(sys.stdin)["data"]["result"]; print(int(float(r[0]["value"][1])) if r else 0)')
+            [ "$n" -ge 2 ] && break; sleep 10
+          done
+          {
+            echo "\$ PromQL: up{namespace=\"incidentdesk\"}"
+            curl -s 'localhost:9090/api/v1/query' --data-urlencode 'query=up{namespace="incidentdesk"}' \
+              | python3 -c 'import json,sys
+          for r in json.load(sys.stdin)["data"]["result"]:
+              m=r["metric"]; print(f"{m.get(\"pod\",\"?\"):55} {m.get(\"app_kubernetes_io_component\",\"\"):10} up={r[\"value\"][1]}")'
+            echo; echo "\$ PromQL: sum by (handler, status) (rate(http_requests_total{namespace=\"incidentdesk\"}[2m]))"
+            curl -s 'localhost:9090/api/v1/query' --data-urlencode 'query=sum by (handler, status) (rate(http_requests_total{namespace="incidentdesk"}[2m]))' \
+              | python3 -c 'import json,sys
+          for r in json.load(sys.stdin)["data"]["result"]:
+              m=r["metric"]; print(f"{m.get(\"handler\",\"\"):35} {m.get(\"status\",\"\"):5} {float(r[\"value\"][1]):.2f} req/s")'
+            echo; echo "\$ curl -s http://grafana:3000/api/health"; curl -s localhost:3000/api/health; echo
+            echo "\$ curl -s http://grafana:3000/api/search?query=IncidentDesk"; curl -s 'localhost:3000/api/search?query=IncidentDesk'; echo
+          } 2>&1 | tee "$E/prometheus-grafana.txt"
+      - name: Screenshots (headless Chromium) — app via Ingress, Prometheus targets, Grafana
+        run: |
+          # keep a little traffic flowing so the rate() panels are not flat at the moment of capture
+          scripts/load-test.sh http://incidentdesk.local 90 >/dev/null 2>&1 &
+          sleep 45
+          pip install --quiet playwright==1.55.0
+          python -m playwright install --with-deps chromium >/dev/null
+          python scripts/ci/screenshots.py "$E/screenshots"
+          wait
+      - name: Argo CD — GitOps sync of the same chart from this repo
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          kubectl create namespace argocd
+          kubectl apply -n argocd --server-side --force-conflicts \
+            -f https://raw.githubusercontent.com/argoproj/argo-cd/v3.1.8/manifests/install.yaml >/dev/null
+          kubectl -n argocd rollout status deploy/argocd-repo-server --timeout=240s
+          kubectl -n argocd rollout status statefulset/argocd-application-controller --timeout=240s
+          sed "s/IMAGE_TAG/$SHA/g" gitops/application-ci.yaml | kubectl apply -f -
+          for _ in $(seq 1 60); do
+            s=$(kubectl -n argocd get application incidentdesk-gitops -o jsonpath='{.status.sync.status}/{.status.health.status}')
+            echo "argo: $s"; [ "$s" = "Synced/Healthy" ] && break; sleep 10
+          done
+          {
+            echo "\$ kubectl -n argocd get applications"; kubectl -n argocd get applications
+            echo; echo "\$ kubectl -n incidentdesk-gitops get pods"; kubectl -n incidentdesk-gitops get pods
+            echo; echo "\$ kubectl -n argocd get application incidentdesk-gitops -o jsonpath=... (source + revision)"
+            kubectl -n argocd get application incidentdesk-gitops \
+              -o jsonpath='repo={.spec.source.repoURL} path={.spec.source.path} revision={.status.sync.revision}{"\n"}'
+            echo; echo "self-heal test: delete the backend Service by hand, Argo CD recreates it"
+            echo "\$ kubectl -n incidentdesk-gitops delete svc incidentdesk-backend"
+            kubectl -n incidentdesk-gitops delete svc incidentdesk-backend
+            sleep 20
+            echo "\$ kubectl -n incidentdesk-gitops get svc incidentdesk-backend"
+            kubectl -n incidentdesk-gitops get svc incidentdesk-backend
+          } 2>&1 | tee "$E/argocd.txt"
+      - name: Troubleshooting lab — broken image and broken Service
+        if: always()
+        run: |
+          {
+            echo "########## 1. broken image ##########"
+            echo "\$ kubectl apply -f troubleshooting/broken-image.yaml"; kubectl apply -f troubleshooting/broken-image.yaml
+            sleep 40
+            echo "\$ kubectl -n $NS get pods -l app=broken-image"; kubectl -n "$NS" get pods -l app=broken-image
+            echo "\$ kubectl -n $NS describe pod -l app=broken-image | tail -8"
+            kubectl -n "$NS" describe pod -l app=broken-image | tail -8
+            echo "\$ kubectl -n $NS get events --sort-by=.lastTimestamp | grep broken-image | tail -4"
+            kubectl -n "$NS" get events --sort-by=.lastTimestamp | grep broken-image | tail -4
+            echo "FIX: \$ kubectl -n $NS set image deploy/broken-image backend=$BACKEND_IMAGE:$SHA"
+            kubectl -n "$NS" set image deploy/broken-image backend="$BACKEND_IMAGE:$SHA"
+            kubectl -n "$NS" patch deploy broken-image --type=json \
+              -p '[{"op":"add","path":"/spec/template/spec/containers/0/imagePullPolicy","value":"Never"}]'
+            sleep 25
+            echo "\$ kubectl -n $NS get pods -l app=broken-image"; kubectl -n "$NS" get pods -l app=broken-image
+            kubectl -n "$NS" delete deploy broken-image --wait=false
+            echo; echo "########## 2. broken Service selector ##########"
+            echo "\$ kubectl apply -f troubleshooting/broken-service.yaml"; kubectl apply -f troubleshooting/broken-service.yaml
+            sleep 5
+            echo "\$ kubectl -n $NS get endpoints incidentdesk-backend-broken"; kubectl -n "$NS" get endpoints incidentdesk-backend-broken
+            echo "\$ kubectl -n $NS get pods -l app.kubernetes.io/component=backend --show-labels"
+            kubectl -n "$NS" get pods -l app.kubernetes.io/component=backend --show-labels
+            echo "FIX: selector component=api -> component=backend"
+            kubectl -n "$NS" patch svc incidentdesk-backend-broken --type=merge \
+              -p '{"spec":{"selector":{"app.kubernetes.io/name":"incidentdesk","app.kubernetes.io/component":"backend"}}}'
+            sleep 5
+            echo "\$ kubectl -n $NS get endpoints incidentdesk-backend-broken"; kubectl -n "$NS" get endpoints incidentdesk-backend-broken
+            kubectl -n "$NS" delete svc incidentdesk-backend-broken
+          } 2>&1 | tee "$E/troubleshooting.txt"
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "### Deployed \`$SHA\` to kind"
+            echo '```'; cat "$E/kubectl-get-all.txt" 2>/dev/null | head -40; echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Diagnostics on failure
+        if: failure()
+        run: |
+          kubectl get pods -A -o wide
+          kubectl -n "$NS" describe pods | tail -80
+          kubectl -n "$NS" logs deploy/incidentdesk-backend --tail=50 || true
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: evidence-deploy
+          path: evidence/
+          retention-days: 30
