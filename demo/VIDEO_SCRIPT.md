@@ -5,7 +5,7 @@ Save the file as `demo/presentation.mp4`. If it is over 100 MB, attach it to a G
 link it in `demo/README.md` instead (GitHub rejects files over 100 MB in Git).
 
 Open these tabs before you start:
-1. `demo/slides.pdf` (full screen)
+1. `demo/presentation.pptx` in slideshow mode (speaker notes have talking points)
 2. The repository on GitHub
 3. The Actions tab of the repository
 4. The latest green run: *Summary* page plus the `evidence-deploy` artifact
