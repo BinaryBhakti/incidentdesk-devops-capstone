@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>IncidentDesk Capstone</title>
+<style>
+  @page { size: 1280px 720px; margin: 0; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, "Helvetica Neue", Arial, sans-serif; color: #1c2430; background: #fff; }
+  .slide { width: 1280px; height: 720px; padding: 56px 72px; page-break-after: always; position: relative; overflow: hidden; }
+  .slide:last-child { page-break-after: auto; }
+  .bar { position: absolute; left: 0; top: 0; bottom: 0; width: 14px; background: #2f6fde; }
+  h1 { font-size: 54px; margin: 0 0 12px; letter-spacing: -1px; }
+  h2 { font-size: 38px; margin: 0 0 28px; color: #13325e; }
+  .sub { font-size: 24px; color: #4a5566; }
+  ul { font-size: 23px; line-height: 1.55; margin: 0; padding-left: 28px; }
+  li { margin-bottom: 6px; }
+  code, pre { font-family: Menlo, Consolas, monospace; }
+  pre { background: #0f1724; color: #d5e2f5; padding: 20px 24px; border-radius: 10px; font-size: 17px; line-height: 1.45; margin: 0; white-space: pre; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 36px; }
+  .tag { display: inline-block; background: #e8f0fd; color: #1d4fa8; border-radius: 6px; padding: 4px 10px; margin: 4px 6px 4px 0; font-size: 19px; }
+  table { border-collapse: collapse; font-size: 20px; width: 100%; }
+  td, th { border-bottom: 1px solid #dde3ec; padding: 9px 10px; text-align: left; vertical-align: top; }
+  th { color: #13325e; }
+  .foot { position: absolute; bottom: 24px; right: 72px; font-size: 15px; color: #8a94a6; }
+  .title { background: linear-gradient(135deg, #0f1f3d, #2f6fde); color: #fff; }
+  .title .sub { color: #cfdcf5; }
+  .title .bar { display: none; }
+  img.arch { width: 100%; max-height: 560px; object-fit: contain; }
+  .note { font-size: 18px; color: #6b7587; margin-top: 18px; }
+</style>
+</head>
+<body>
+
+<section class="slide title">
+  <div style="margin-top:150px">
+    <h1>IncidentDesk</h1>
+    <div class="sub" style="font-size:30px">From laptop to a monitored Kubernetes deployment</div>
+    <div class="sub" style="margin-top:40px">DevOps Final Capstone · Session 21</div>
+    <div class="sub">github.com/BinaryBhakti/incidentdesk-devops-capstone</div>
+  </div>
+</section>
+
+<section class="slide"><div class="bar"></div>
+  <h2>1 · Project overview</h2>
+  <ul>
+    <li><b>IncidentDesk</b>: an incident-management SaaS. Open incidents (service, SEV1–SEV4), move them OPEN → INVESTIGATING → RESOLVED, and watch live KPIs</li>
+    <li>Responsive React dashboard: KPI cards, filters, incident table, create modal</li>
+    <li>FastAPI REST API with 9 endpoints, plus <code>/health</code>, <code>/ready</code> and <code>/metrics</code></li>
+    <li>PostgreSQL schema owned by Alembic migrations</li>
+    <li>Goal: show how one commit travels <b>Git → CI → security gate → registry → Terraform → Kubernetes → monitoring</b>, and how to troubleshoot it when it breaks</li>
+  </ul>
+  <div class="foot">IncidentDesk · Session 21 capstone</div>
+</section>
+
+<section class="slide"><div class="bar"></div>
+  <h2>2 · Tech stack</h2>
+  <div class="cols">
+    <div>
+      <p class="sub"><b>Application</b></p>
+      <span class="tag">Python 3.12</span><span class="tag">FastAPI</span><span class="tag">SQLAlchemy 2</span><span class="tag">Alembic</span><span class="tag">PostgreSQL 16</span><span class="tag">pytest</span><span class="tag">ruff</span><span class="tag">React 19</span><span class="tag">Vite</span><span class="tag">nginx</span>
+      <p class="sub" style="margin-top:28px"><b>Delivery</b></p>
+      <span class="tag">Docker</span><span class="tag">Compose</span><span class="tag">GitHub Actions</span><span class="tag">GHCR</span><span class="tag">Trivy</span><span class="tag">gitleaks</span>
+    </div>
+    <div>
+      <p class="sub"><b>Platform</b></p>
+      <span class="tag">Terraform</span><span class="tag">AWS VPC</span><span class="tag">EKS</span><span class="tag">LocalStack</span><span class="tag">Kubernetes (kind)</span><span class="tag">Helm</span><span class="tag">NGINX Ingress</span><span class="tag">HPA + metrics-server</span><span class="tag">Argo CD</span>
+      <p class="sub" style="margin-top:28px"><b>Observability</b></p>
+      <span class="tag">Prometheus</span><span class="tag">kube-state-metrics</span><span class="tag">Grafana</span><span class="tag">alert rules</span><span class="tag">dashboard as code</span>
+    </div>
+  </div>
+  <div class="foot">IncidentDesk · Session 21 capstone</div>
+</section>
+
+<section class="slide"><div class="bar"></div>
+  <h2>3 · Architecture</h2>
+  <img class="arch" src="../architecture.svg" alt="architecture">
+  <div class="foot">IncidentDesk · Session 21 capstone</div>
+</section>
+
+<section class="slide"><div class="bar"></div>
+  <h2>4 · CI/CD pipeline (GitHub Actions)</h2>
+<pre>push to main
+  ├─ Test ............ ruff · pytest -v (real Postgres service) · npm ci &amp;&amp; vite build
+  ├─ Secret scan ..... gitleaks over the full history
+  ├─ Build/scan/push . docker build ×2 → Trivy (HIGH/CRITICAL, exit 1) → GHCR :&lt;commit sha&gt;
+  ├─ Terraform ....... fmt · init · validate · plan (VPC+EKS) · apply · destroy (LocalStack)
+  └─ Deploy .......... kind → Ingress → Prometheus/Grafana → helm upgrade --install
+                       → smoke test via Ingress → load test → HPA → PromQL checks
+                       → screenshots → Argo CD sync → troubleshooting lab</pre>
+  <ul style="margin-top:22px">
+    <li>Each stage is a gate: a failing test or a fixable HIGH CVE means <b>no image is pushed</b></li>
+    <li>Image tag = commit SHA, so production traces back to one exact commit</li>
+  </ul>
+  <div class="foot">IncidentDesk · Session 21 capstone</div>
+</section>
+
+<section class="slide"><div class="bar"></div>
+  <h2>5 · DevSecOps</h2>
+  <table>
+    <tr><th>Layer</th><th>Tool</th><th>Where</th></tr>
+    <tr><td>Secret scanning</td><td>gitleaks (full Git history)</td><td>CI job <i>Secret scan</i></td></tr>
+    <tr><td>Container scanning</td><td>Trivy: OS packages + Python/npm deps</td><td>both images, before push</td></tr>
+    <tr><td>SAST / dependency audit</td><td>Semgrep, Bandit, pip-audit configs</td><td><code>security/</code></td></tr>
+    <tr><td>Runtime hardening</td><td>non-root uid, read-only root FS, no default DB password</td><td>Dockerfiles, Helm chart</td></tr>
+  </table>
+  <p class="note">A scanner is one control, not a guarantee. <code>--ignore-unfixed</code> gates on what we can fix by upgrading. Accepted risks need a reason and a review date in <code>.trivyignore</code>.</p>
+  <div class="foot">IncidentDesk · Session 21 capstone</div>
+</section>
+
+<section class="slide"><div class="bar"></div>
+  <h2>6 · Infrastructure as Code: Terraform</h2>
+  <div class="cols">
+    <ul>
+      <li>VPC <code>10.20.0.0/16</code> in <b>ap-south-1</b></li>
+      <li>2 public + 2 private subnets across 2 AZs, IGW, NAT, route tables</li>
+      <li><b>EKS cluster</b> + <b>managed node group</b> (2 × t3.medium, private subnets)</li>
+      <li>IAM roles, security groups, S3 backups bucket, DynamoDB lock table</li>
+    </ul>
+<pre>terraform init
+terraform plan   # VPC + EKS
+terraform apply
+aws eks update-kubeconfig \
+  --name incidentdesk-dev-eks
+terraform destroy</pre>
+  </div>
+  <p class="note">No AWS account: CI runs it on LocalStack. The plan includes EKS; apply/destroy create and remove the network, IAM and storage (EKS is LocalStack Pro-only).</p>
+  <div class="foot">IncidentDesk · Session 21 capstone</div>
+</section>
+
+<section class="slide"><div class="bar"></div>
+  <h2>7 · Kubernetes + Helm</h2>
+  <div class="cols">
+    <ul>
+      <li>Namespace <code>incidentdesk</code></li>
+      <li>Backend + frontend Deployments, <b>2 replicas</b> each, rolling updates</li>
+      <li>Startup / liveness <code>/health</code> · readiness <code>/ready</code></li>
+      <li>PostgreSQL StatefulSet + PVC</li>
+      <li>ClusterIP Services · Ingress <code>/</code> → frontend, <code>/api</code> → backend</li>
+      <li>HPA 2–5 pods at 60% CPU · PDB</li>
+    </ul>
+<pre>kubectl apply -f k8s/namespace.yaml
+helm upgrade --install incidentdesk \
+  ./helm/incidentdesk -n incidentdesk
+kubectl get pods,svc,ingress,hpa \
+  -n incidentdesk
+helm list -n incidentdesk</pre>
+  </div>
+  <p class="note">GitOps: an Argo CD Application syncs the same chart from Git with auto-sync, prune and self-heal.</p>
+  <div class="foot">IncidentDesk · Session 21 capstone</div>
+</section>
+
+<section class="slide"><div class="bar"></div>
+  <h2>8 · Observability</h2>
+  <ul>
+    <li><code>/metrics</code>: request count and latency histogram per route, plus <code>incidents_created_total</code></li>
+    <li><b>Prometheus</b> scrapes annotated pods and kube-state-metrics; 6 alert rules (backend down, not ready, restarts, error rate, p95 latency, HPA at max)</li>
+    <li><b>Grafana</b> dashboard provisioned from code: pods up, req/s, error ratio, p50/p95/p99, CPU and memory per pod, HPA replicas</li>
+    <li>Answers: is traffic arriving? which endpoint is slow? are errors rising? is the HPA scaling?</li>
+  </ul>
+  <div class="foot">IncidentDesk · Session 21 capstone</div>
+</section>
+
+<section class="slide"><div class="bar"></div>
+  <h2>9 · Troubleshooting</h2>
+  <table>
+    <tr><th>Break</th><th>Symptom</th><th>Investigation</th><th>Fix</th></tr>
+    <tr><td>Image tag that doesn't exist</td><td>ImagePullBackOff</td><td>describe pod, events</td><td>set image to the CI SHA</td></tr>
+    <tr><td>Service selector typo</td><td>no endpoints → 502</td><td>get endpoints, --show-labels</td><td>match labels</td></tr>
+    <tr><td>Wrong readiness path</td><td>0/1 Ready</td><td>describe, probe events</td><td>/ready</td></tr>
+    <tr><td>HPA without requests</td><td>&lt;unknown&gt; targets</td><td>describe hpa</td><td>set requests</td></tr>
+    <tr><td>Hand edit in cluster</td><td>drift</td><td>Argo CD diff</td><td>self-heal</td></tr>
+  </table>
+  <div class="foot">IncidentDesk · Session 21 capstone</div>
+</section>
+
+<section class="slide"><div class="bar"></div>
+  <h2>10 · Key learnings</h2>
+  <ul>
+    <li>Gates belong <b>before</b> the registry: tests and the scanner decide what is allowed to exist</li>
+    <li>Liveness ≠ readiness: <code>/ready</code> checks the database, so traffic only reaches pods that can serve</li>
+    <li>SHA tags beat <code>latest</code>: rollback means picking a commit</li>
+    <li>A Service is only labels. Most "network" bugs are selector bugs</li>
+    <li>HPA needs requests and a metrics provider; Ingress needs a controller</li>
+    <li>Declare everything (Terraform, Helm, dashboards) so a rebuild looks identical</li>
+    <li>Be honest about limits: LocalStack and kind stand in for AWS and EKS here</li>
+  </ul>
+  <div class="foot">IncidentDesk · Session 21 capstone</div>
+</section>
+
+</body>
+</html>
