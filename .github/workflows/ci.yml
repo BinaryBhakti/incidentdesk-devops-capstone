@@ -278,6 +278,21 @@ jobs:
             -f monitoring/prometheus-values.yaml
           helm upgrade --install grafana grafana-community/grafana -n monitoring -f monitoring/grafana-values.yaml
           kubectl -n ingress-nginx wait --for=condition=Ready pod -l app.kubernetes.io/component=controller --timeout=180s
+          kubectl -n ingress-nginx wait --for=condition=Complete job --all --timeout=120s
+          # the admission webhook answers a few seconds after the controller is Ready: wait for it
+          for _ in $(seq 1 30); do
+            kubectl -n ingress-nginx get endpointslices -l app.kubernetes.io/component=controller \
+              -o jsonpath='{.items[*].endpoints[*].conditions.ready}' | grep -q true && \
+            kubectl apply --dry-run=server -f - <<'YAML' >/dev/null 2>&1 && break
+          apiVersion: networking.k8s.io/v1
+          kind: Ingress
+          metadata: { name: webhook-probe, namespace: default }
+          spec:
+            ingressClassName: nginx
+            rules: [{ host: probe.local, http: { paths: [{ path: /, pathType: Prefix, backend: { service: { name: x, port: { number: 80 } } } }] } }]
+          YAML
+            sleep 4
+          done
       - name: kubectl apply -f k8s/namespace.yaml ; helm upgrade --install
         run: |
           set -o pipefail
@@ -411,8 +426,8 @@ jobs:
             kubectl -n "$NS" describe pod -l app=broken-image | tail -8
             echo "\$ kubectl -n $NS get events --sort-by=.lastTimestamp | grep broken-image | tail -4"
             kubectl -n "$NS" get events --sort-by=.lastTimestamp | grep broken-image | tail -4
-            echo "FIX: \$ kubectl -n $NS set image deploy/broken-image backend=$BACKEND_IMAGE:$SHA"
-            kubectl -n "$NS" set image deploy/broken-image backend="$BACKEND_IMAGE:$SHA"
+            echo "FIX: \$ kubectl -n $NS set image deploy/broken-image web=$FRONTEND_IMAGE:$SHA"
+            kubectl -n "$NS" set image deploy/broken-image web="$FRONTEND_IMAGE:$SHA"
             kubectl -n "$NS" patch deploy broken-image --type=json \
               -p '[{"op":"add","path":"/spec/template/spec/containers/0/imagePullPolicy","value":"Never"}]'
             sleep 25

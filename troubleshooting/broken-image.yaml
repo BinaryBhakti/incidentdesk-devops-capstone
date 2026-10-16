@@ -2,7 +2,7 @@
 #   kubectl apply -f troubleshooting/broken-image.yaml
 #   kubectl -n incidentdesk get pods -l app=broken-image        -> ErrImagePull / ImagePullBackOff
 #   kubectl -n incidentdesk describe pod -l app=broken-image    -> Events: "...not found"
-# Fix: point the image at a tag that exists (e.g. the commit SHA CI pushed), or delete the lab.
+# Fix: kubectl set image deploy/broken-image web=<image>:<commit sha that CI pushed>
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -18,9 +18,11 @@ spec:
       labels: { app: broken-image }
     spec:
       containers:
-        - name: backend
-          image: ghcr.io/binarybhakti/incidentdesk-capstone-backend:this-tag-does-not-exist
-          ports: [{ containerPort: 8000 }]
+        - name: web
+          image: ghcr.io/binarybhakti/incidentdesk-capstone-frontend:this-tag-does-not-exist
+          env:
+            - { name: BACKEND_URL, value: "http://incidentdesk-backend:8000" }
+          ports: [{ containerPort: 8080 }]
           resources:
             requests: { cpu: 10m, memory: 32Mi }
             limits: { memory: 64Mi }
