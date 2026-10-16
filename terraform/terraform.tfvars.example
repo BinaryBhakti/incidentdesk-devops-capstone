@@ -1,0 +1,19 @@
+# Copy to terraform.tfvars and adjust. Contains no credentials — never put any here.
+# AWS credentials come from `aws configure` / env vars, never from this file.
+aws_region            = "ap-south-1"
+azs                   = ["ap-south-1a", "ap-south-1b"]
+project               = "incidentdesk"
+environment           = "dev"
+vpc_cidr              = "10.20.0.0/16"
+backup_retention_days = 90
+
+# EKS
+enable_eks          = true
+eks_version         = "1.33"
+node_instance_types = ["t3.medium"]
+node_desired_size   = 2
+
+# No AWS account? Run everything against LocalStack instead (EKS needs LocalStack Pro):
+# use_localstack      = true
+# enable_eks          = false
+# localstack_endpoint = "http://localhost:4566"
