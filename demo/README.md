@@ -2,7 +2,7 @@
 
 | File | What |
 |---|---|
-| [`presentation.mp4`](presentation.mp4) | **Presentation video** (65 s, 720p, no narration): the 13-slide deck exported from Keynote, including the CI evidence screenshots. A narrated live walkthrough following [VIDEO_SCRIPT.md](VIDEO_SCRIPT.md) replaces it when recorded |
+| [`presentation.mp4`](presentation.mp4) | **Presentation video** (5 min 54 s, 1080p, narrated): walks through all 13 slides, including the CI evidence screenshots. Narration is synthesized speech (macOS voice) from a script written for this project |
 | [`presentation.pptx`](presentation.pptx) | **PowerPoint deck**, 13 slides with real CI screenshots and speaker notes |
 | [`slides.pdf`](slides.pdf) | Shorter PDF version, 11 slides (source: [`slides.html`](slides.html)) |
 | [`screenshots/`](screenshots) | UI screenshots taken by headless Chromium inside the CI deploy job, plus terminal renders of the CI logs |
