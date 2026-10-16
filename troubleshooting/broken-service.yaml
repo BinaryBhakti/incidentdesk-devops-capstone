@@ -1,0 +1,22 @@
+# LAB: a Service whose selector matches no Pod -> no endpoints -> no traffic.
+#   kubectl apply -f troubleshooting/broken-service.yaml
+#   kubectl -n incidentdesk get endpoints incidentdesk-backend-broken   -> <none>
+#   kubectl -n incidentdesk get pods --show-labels                      -> the real label is
+#                                                                         app.kubernetes.io/component=backend
+# Fix: make the selector match the pod labels (see the commented block), re-apply, endpoints appear.
+apiVersion: v1
+kind: Service
+metadata:
+  name: incidentdesk-backend-broken
+  namespace: incidentdesk
+  labels: { lab: troubleshooting }
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/component: api          # WRONG: the pods are labelled "backend"
+    # app.kubernetes.io/name: incidentdesk     # FIX
+    # app.kubernetes.io/component: backend
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8000

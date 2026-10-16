@@ -1,0 +1,26 @@
+# LAB: ImagePullBackOff. The tag below does not exist in the registry.
+#   kubectl apply -f troubleshooting/broken-image.yaml
+#   kubectl -n incidentdesk get pods -l app=broken-image        -> ErrImagePull / ImagePullBackOff
+#   kubectl -n incidentdesk describe pod -l app=broken-image    -> Events: "...not found"
+# Fix: point the image at a tag that exists (e.g. the commit SHA CI pushed), or delete the lab.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: broken-image
+  namespace: incidentdesk
+  labels: { app: broken-image, lab: troubleshooting }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: broken-image }
+  template:
+    metadata:
+      labels: { app: broken-image }
+    spec:
+      containers:
+        - name: backend
+          image: ghcr.io/binarybhakti/incidentdesk-backend:this-tag-does-not-exist
+          ports: [{ containerPort: 8000 }]
+          resources:
+            requests: { cpu: 10m, memory: 32Mi }
+            limits: { memory: 64Mi }
