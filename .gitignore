@@ -1,0 +1,27 @@
+# python
+__pycache__/
+*.pyc
+.pytest_cache/
+.coverage
+htmlcov/
+reports/
+.venv/
+venv/
+# secrets / local config
+.env
+*.env.local
+# node
+node_modules/
+dist/
+# terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+terraform.tfvars
+# os / editors
+.DS_Store
+.idea/
+.vscode/
+# CI evidence downloaded locally before it is curated into demo/
+ci-evidence/
